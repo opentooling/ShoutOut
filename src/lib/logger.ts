@@ -73,7 +73,8 @@ export function sanitize(value: unknown, depth = 0): unknown {
   return Object.fromEntries(
     Object.entries(value).map(([key, inner]) => [
       key,
-      SECRET_KEY.test(key) && inner != null && inner !== ""
+      // Flags like `clientSecretSet: true` can't leak anything, so booleans stay visible.
+      SECRET_KEY.test(key) && inner != null && inner !== "" && typeof inner !== "boolean"
         ? "[redacted]"
         : sanitize(inner, depth + 1),
     ]),

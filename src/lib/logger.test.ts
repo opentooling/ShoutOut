@@ -70,6 +70,7 @@ describe("sanitize", () => {
         list: [{ password: "p" }],
         idToken: null,
         state: "",
+        clientSecretSet: true,
       }),
     ).toEqual({
       access_token: "[redacted]",
@@ -82,6 +83,7 @@ describe("sanitize", () => {
       list: [{ password: "[redacted]" }],
       idToken: null,
       state: "",
+      clientSecretSet: true,
     });
   });
 
