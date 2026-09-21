@@ -1,6 +1,7 @@
 import { sql } from "@/lib/sql";
 import { describe, expect, it, vi } from "vitest";
 import { useTestDb } from "../../../test/db";
+import { captureLogs } from "../../../test/logs";
 import { createUser, count, findUser, insertUser } from "../../../test/factories";
 import type { KeycloakUser } from "./keycloak-admin";
 import { isSyncable, runKeycloakSync, syncCredentialsFromEnv, syncUsers } from "./sync-users";
@@ -99,15 +100,22 @@ describe("syncUsers (postgres)", () => {
   it("skips users that clash and never deactivates everyone on an empty list", async () => {
     await insertUser(db, { keycloakId: "kc-1", email: "one@example.com", name: "One" });
     await insertUser(db, { keycloakId: "kc-2", email: "two@example.com", name: "Two" });
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const logs = captureLogs();
 
     // kc-1 now claims kc-2's email: the update clashes on the unique email.
     const result = await syncUsers(db, [kc({ id: "kc-1", email: "two@example.com" })]);
     expect(result.skipped).toBe(1);
-    expect(warn).toHaveBeenCalledOnce();
+    expect(logs.entries).toEqual([
+      expect.objectContaining({
+        level: "warn",
+        msg: "Skipped a Keycloak user",
+        keycloakId: "kc-1",
+      }),
+    ]);
 
     expect(await syncUsers(db, [])).toEqual({ created: 0, updated: 0, deactivated: 0, skipped: 0 });
     expect(await count(db, "users", sql`active`)).toBe(1);
+    vi.restoreAllMocks();
   });
 
   it("runs a full sync through Keycloak's APIs", async () => {

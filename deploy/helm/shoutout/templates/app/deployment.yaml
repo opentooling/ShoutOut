@@ -83,6 +83,18 @@ spec:
                 secretKeyRef:
                   name: {{ include "shoutout.secretName" . }}
                   key: sync-token
+            - name: SHOUTOUT_ADMIN_ROLE
+              value: {{ .Values.auth.adminRole | quote }}
+            - name: SHOUTOUT_ROLES_CLIENT_ID
+              value: {{ default .Values.auth.clientId .Values.auth.rolesClientId | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.logging.level | quote }}
+            - name: LOG_FORMAT
+              value: {{ .Values.logging.format | quote }}
+            {{- if include "shoutout.extraCaCerts.enabled" . }}
+            - name: NODE_EXTRA_CA_CERTS
+              value: /etc/shoutout/ca/{{ .Values.app.extraCaCerts.key }}
+            {{- end }}
             {{- with .Values.app.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -103,6 +115,11 @@ spec:
               mountPath: /app/.next/cache
             - name: tmp
               mountPath: /tmp
+            {{- if include "shoutout.extraCaCerts.enabled" . }}
+            - name: extra-ca
+              mountPath: /etc/shoutout/ca
+              readOnly: true
+            {{- end }}
           resources:
             {{- toYaml .Values.app.resources | nindent 12 }}
       volumes:
@@ -110,6 +127,17 @@ spec:
           emptyDir: {}
         - name: tmp
           emptyDir: {}
+        {{- with .Values.app.extraCaCerts }}
+        {{- if .configMap }}
+        - name: extra-ca
+          configMap:
+            name: {{ .configMap }}
+        {{- else if .secret }}
+        - name: extra-ca
+          secret:
+            secretName: {{ .secret }}
+        {{- end }}
+        {{- end }}
       {{- with .Values.app.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -1,32 +1,97 @@
 import { describe, expect, it } from "vitest";
-import { extractRoles, isAdmin, ROLES } from "./roles";
+import {
+  decodeJwtPayload,
+  DEFAULT_ADMIN_ROLE,
+  isAdmin,
+  resolveRoles,
+  roleConfigFromEnv,
+  ROLES,
+} from "./roles";
 
-describe("extractRoles", () => {
-  it("returns no roles for missing claims", () => {
-    expect(extractRoles(undefined)).toEqual([]);
-    expect(extractRoles(null)).toEqual([]);
-    expect(extractRoles({})).toEqual([]);
+const config = { clientId: "shoutout-web", adminRole: "admin" };
+
+/** An unsigned JWT with the given payload (only the payload is read). */
+function jwt(payload: unknown) {
+  return `header.${Buffer.from(JSON.stringify(payload)).toString("base64url")}.signature`;
+}
+
+describe("roleConfigFromEnv", () => {
+  it("defaults to the app's own client and the admin role", () => {
+    expect(roleConfigFromEnv({ AUTH_KEYCLOAK_ID: "shoutout-web" })).toEqual(config);
+    expect(roleConfigFromEnv({})).toEqual({ clientId: "", adminRole: DEFAULT_ADMIN_ROLE });
   });
 
-  it("reads the flat roles claim and ignores unknown roles", () => {
-    expect(extractRoles({ roles: ["shoutout-admin", "offline_access", 42] })).toEqual([
-      ROLES.admin,
-    ]);
-  });
-
-  it("falls back to realm_access.roles and de-duplicates", () => {
+  it("can point at another client and role", () => {
     expect(
-      extractRoles({
-        roles: "not-an-array",
-        realm_access: { roles: ["shoutout-user", "shoutout-user", "uma_authorization"] },
+      roleConfigFromEnv({
+        AUTH_KEYCLOAK_ID: "shoutout-web",
+        SHOUTOUT_ROLES_CLIENT_ID: " portal ",
+        SHOUTOUT_ADMIN_ROLE: " kudos-admin ",
       }),
-    ).toEqual([ROLES.user]);
+    ).toEqual({ clientId: "portal", adminRole: "kudos-admin" });
+  });
+});
+
+describe("decodeJwtPayload", () => {
+  it("reads a JWT payload", () => {
+    expect(decodeJwtPayload(jwt({ sub: "kc-1" }))).toEqual({ sub: "kc-1" });
   });
 
-  it("merges both claims", () => {
-    expect(
-      extractRoles({ roles: ["shoutout-user"], realm_access: { roles: ["shoutout-admin"] } }),
-    ).toEqual([ROLES.user, ROLES.admin]);
+  it("ignores anything that isn't a JWT with an object payload", () => {
+    expect(decodeJwtPayload(undefined)).toBeNull();
+    expect(decodeJwtPayload("opaque-token")).toBeNull();
+    expect(decodeJwtPayload("a.!!!.c")).toBeNull();
+    expect(decodeJwtPayload(jwt([1, 2]))).toBeNull();
+    expect(decodeJwtPayload(jwt("text"))).toBeNull();
+  });
+});
+
+describe("resolveRoles", () => {
+  it("makes everyone a user, even with no roles at all", () => {
+    expect(resolveRoles({}, config)).toEqual({
+      roles: [ROLES.user],
+      clientRoles: [],
+      clientsWithRoles: [],
+    });
+  });
+
+  it("grants admin from the client role in the access token", () => {
+    const accessToken = jwt({
+      resource_access: {
+        "shoutout-web": { roles: ["admin"] },
+        account: { roles: ["view-profile"] },
+      },
+    });
+    expect(resolveRoles({ idToken: { sub: "kc-1" }, accessToken }, config)).toEqual({
+      roles: [ROLES.user, ROLES.admin],
+      clientRoles: ["admin"],
+      clientsWithRoles: ["shoutout-web", "account"],
+    });
+  });
+
+  it("also reads the ID token and de-duplicates", () => {
+    const claims = { resource_access: { "shoutout-web": { roles: ["admin", 7] } } };
+    expect(resolveRoles({ idToken: claims, accessToken: jwt(claims) }, config).clientRoles).toEqual(
+      ["admin"],
+    );
+  });
+
+  it("ignores realm roles, other clients' roles and other role names", () => {
+    const accessToken = jwt({
+      realm_access: { roles: ["admin", "shoutout-admin"] },
+      resource_access: { portal: { roles: ["admin"] }, "shoutout-web": { roles: ["viewer"] } },
+    });
+    const { roles, clientsWithRoles } = resolveRoles({ accessToken }, config);
+    expect(roles).toEqual([ROLES.user]);
+    expect(clientsWithRoles).toEqual(["portal", "shoutout-web"]);
+    expect(resolveRoles({ accessToken }, { ...config, clientId: "portal" }).roles).toContain(
+      ROLES.admin,
+    );
+  });
+
+  it("never grants admin without a configured client", () => {
+    const accessToken = jwt({ resource_access: { "": { roles: ["admin"] } } });
+    expect(resolveRoles({ accessToken }, { ...config, clientId: "" }).roles).toEqual([ROLES.user]);
   });
 });
 

@@ -32,14 +32,20 @@ database:
   existingSecretKey: database-url
 
 # Use your own Keycloak. The client needs:
-#   - a "roles" mapper adding realm roles to the ID token (shoutout-user, shoutout-admin)
 #   - redirect URI <appUrl>/api/auth/callback/keycloak
+#   - the default "roles" and "email" client scopes
+#   - a client role "admin" (auth.adminRole) given to admins; everyone else needs no role
 #   - service account with realm-management "view-users" for the people sync
 keycloak:
   enabled: false
 auth:
   issuer: https://sso.example.com/realms/example
   clientId: shoutout-web
+  adminRole: admin
+
+# JSON logs; switch to debug while setting up sign-in.
+logging:
+  level: info
 
 app:
   replicaCount: 2
@@ -59,6 +65,10 @@ app:
   resources:
     requests: { cpu: 100m, memory: 192Mi }
     limits: { memory: 512Mi }
+  # Trust a company CA for Keycloak's certificate:
+  #   kubectl -n shoutout create configmap corp-ca --from-file=ca.crt=corp-ca.pem
+  # extraCaCerts:
+  #   configMap: corp-ca
 
 # Keep the people list in step with Keycloak (also runs when the app starts).
 userSync:

@@ -6,17 +6,19 @@ import { Logo } from "@/components/brand/logo";
 import { findCardDesign } from "@/components/cards/designs";
 import { CardTile } from "@/components/cards/card-tile";
 import { buttonClasses } from "@/components/ui/button";
+import { signInErrorMessage } from "@/server/auth/sign-in-errors";
 
 export const metadata: Metadata = { title: "Sign in" };
 
 const FAN = ["thank-you", "above-and-beyond", "team-player"].map((slug) => findCardDesign(slug)!);
 const FAN_STYLES = ["-rotate-6 translate-y-3", "z-10 -translate-y-1", "rotate-6 translate-y-3"];
 
-export default async function SignInPage() {
+export default async function SignInPage({ searchParams }: PageProps<"/signin">) {
   const session = await auth();
   if (session?.user) {
     redirect("/");
   }
+  const errorMessage = signInErrorMessage((await searchParams).error);
 
   return (
     <main className="flex flex-1 items-center justify-center px-4 py-10 sm:px-6">
@@ -29,6 +31,14 @@ export default async function SignInPage() {
           <p className="mt-4 text-lg text-muted">
             Say thanks, celebrate wins and cheer on your colleagues with a ShoutOut card.
           </p>
+          {errorMessage && (
+            <p
+              role="alert"
+              className="mt-6 rounded-2xl bg-coral-soft px-4 py-3 text-left font-bold text-coral-strong"
+            >
+              {errorMessage}
+            </p>
+          )}
           <form action={signInWithKeycloak} className="mt-8">
             <button
               type="submit"

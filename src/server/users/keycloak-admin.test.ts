@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { fetchAllUsers, fetchServiceToken, keycloakAdminBase } from "./keycloak-admin";
+import {
+  fetchAllUsers,
+  fetchServiceToken,
+  KeycloakHttpError,
+  keycloakAdminBase,
+} from "./keycloak-admin";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -39,10 +44,42 @@ describe("fetchServiceToken", () => {
     });
   });
 
-  it("fails on HTTP errors and missing tokens", async () => {
+  it("fails on HTTP errors with Keycloak's reason and a hint", async () => {
+    const invalid = json(
+      { error: "unauthorized_client", error_description: "Invalid client" },
+      401,
+    );
+    const error = await fetchServiceToken(credentials, vi.fn().mockResolvedValue(invalid)).catch(
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(KeycloakHttpError);
+    expect(error).toMatchObject({ status: 401, what: "Keycloak token request" });
+    expect((error as Error).message).toBe(
+      'Keycloak token request failed with HTTP 401: {"error":"unauthorized_client","error_description":"Invalid client"} (hint: check the client secret (AUTH_KEYCLOAK_SECRET) matches the Keycloak client\'s credentials)',
+    );
     await expect(
-      fetchServiceToken(credentials, vi.fn().mockResolvedValue(json({}, 401))),
-    ).rejects.toThrow("Keycloak token request failed with HTTP 401");
+      fetchServiceToken(credentials, vi.fn().mockResolvedValue(new Response("", { status: 502 }))),
+    ).rejects.toThrow(/^Keycloak token request failed with HTTP 502$/);
+    const unreadable = new Response("x", { status: 400 });
+    vi.spyOn(unreadable, "text").mockRejectedValue(new Error("stream broke"));
+    await expect(
+      fetchServiceToken(credentials, vi.fn().mockResolvedValue(unreadable)),
+    ).rejects.toThrow(/HTTP 400 \(hint: check the client id/);
+  });
+
+  it("names the unreachable host and keeps the real reason as the cause", async () => {
+    const tls = Object.assign(new Error("self-signed certificate"), {
+      code: "SELF_SIGNED_CERT_IN_CHAIN",
+    });
+    const error = (await fetchServiceToken(
+      credentials,
+      vi.fn().mockRejectedValue(new TypeError("fetch failed", { cause: tls })),
+    ).catch((e: unknown) => e)) as Error;
+    expect(error.message).toBe("Keycloak token request: could not reach http://kc");
+    expect((error.cause as Error).cause).toBe(tls);
+  });
+
+  it("fails on missing tokens", async () => {
     await expect(
       fetchServiceToken(credentials, vi.fn().mockResolvedValue(json({}))),
     ).rejects.toThrow(/no access_token/);

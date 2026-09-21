@@ -46,22 +46,28 @@ export function findByKeycloakIdOrEmail(db: Db, keycloakId: string, email: strin
 
 /** Creates or refreshes the local user record for someone who just signed in. */
 export async function upsertUserFromOidc(db: Db, profile: OidcProfile, now = new Date()) {
-  if (!profile.sub || !profile.email) {
-    throw new Error("OIDC profile is missing sub or email");
+  const { sub, email: rawEmail } = profile;
+  if (!sub || !rawEmail) {
+    const missing = [!sub && "sub", !rawEmail && "email"].filter(Boolean);
+    throw new Error(
+      `Keycloak did not send the ${missing.join(" and ")} claim${missing.length > 1 ? "s" : ""}. ` +
+        "ShoutOut needs both: give the user an email address in Keycloak (or the directory it " +
+        "syncs from) and make sure the client has the 'email' client scope.",
+    );
   }
-  const email = profile.email.toLowerCase();
+  const email = rawEmail.toLowerCase();
   const name = displayName(profile);
   const avatarUrl = profile.picture ?? null;
-  const existing = await findByKeycloakIdOrEmail(db, profile.sub, email);
+  const existing = await findByKeycloakIdOrEmail(db, sub, email);
   if (existing) {
     return (await db.one<UserRecord>(sql`
-      UPDATE users SET keycloak_id = ${profile.sub}, email = ${email}, name = ${name},
+      UPDATE users SET keycloak_id = ${sub}, email = ${email}, name = ${name},
         avatar_url = ${avatarUrl}, active = true, last_login_at = ${now}, updated_at = now()
       WHERE id = ${existing.id}
       RETURNING ${USER_COLUMNS}`))!;
   }
   return (await db.one<UserRecord>(sql`
     INSERT INTO users (keycloak_id, email, name, avatar_url, active, last_login_at)
-    VALUES (${profile.sub}, ${email}, ${name}, ${avatarUrl}, true, ${now})
+    VALUES (${sub}, ${email}, ${name}, ${avatarUrl}, true, ${now})
     RETURNING ${USER_COLUMNS}`))!;
 }

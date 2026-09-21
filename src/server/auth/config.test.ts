@@ -7,7 +7,20 @@ import type { Db } from "@/lib/db";
 const upsertUserFromOidc = vi.fn();
 vi.mock("../users/upsert-from-oidc", () => ({ upsertUserFromOidc }));
 
-const { buildAuthConfig, SESSION_MAX_AGE_SECONDS } = await import("./config");
+const { authLogger, buildAuthConfig, SESSION_MAX_AGE_SECONDS } = await import("./config");
+const { createLogger } = await import("@/lib/logger");
+
+const roleConfig = { clientId: "shoutout-web", adminRole: "admin" };
+
+function recorder(level = "debug") {
+  const lines: Record<string, unknown>[] = [];
+  const push = (line: string) => lines.push(JSON.parse(line) as Record<string, unknown>);
+  const log = createLogger("auth", { env: { LOG_LEVEL: level }, sink: { out: push, err: push } });
+  return { log, lines };
+}
+
+const accessToken = (roles: string[], client = "shoutout-web") =>
+  `h.${Buffer.from(JSON.stringify({ resource_access: { [client]: { roles } } })).toString("base64url")}.s`;
 
 function fakeDb() {
   upsertUserFromOidc.mockReset();
@@ -29,7 +42,12 @@ describe("buildAuthConfig", () => {
     const config = buildAuthConfig(() => fakeDb().db);
     expect(config.providers).toHaveLength(1);
     expect(config.session).toEqual({ strategy: "jwt", maxAge: SESSION_MAX_AGE_SECONDS });
-    expect(config.pages?.signIn).toBe("/signin");
+    expect(config.pages).toEqual({ signIn: "/signin", error: "/signin" });
+  });
+
+  it("turns on Auth.js debug output only at debug level", () => {
+    expect(buildAuthConfig(() => fakeDb().db, { log: recorder("debug").log }).debug).toBe(true);
+    expect(buildAuthConfig(() => fakeDb().db, { log: recorder("info").log }).debug).toBe(false);
   });
 
   describe("authorized", () => {
@@ -51,33 +69,84 @@ describe("buildAuthConfig", () => {
   });
 
   describe("jwt", () => {
-    it("upserts the user and stores claims on sign-in", async () => {
-      const { db, upsert } = fakeDb();
-      const { jwt } = buildAuthConfig(() => db).callbacks!;
-      const profile = {
-        sub: "kc-1",
-        email: "alice@example.com",
-        roles: ["shoutout-admin"],
-      } as Profile;
-      const token = await jwt!({
+    const signIn = (
+      jwt: NonNullable<ReturnType<typeof buildAuthConfig>["callbacks"]>["jwt"],
+      roles: string[],
+    ) =>
+      jwt!({
         token: {} as JWT,
-        account: { id_token: "id-token" } as Account,
-        profile,
+        account: { id_token: "id-token", access_token: accessToken(roles) } as Account,
+        profile: {
+          sub: "kc-1",
+          email: "alice@example.com",
+          preferred_username: "alice",
+        } as Profile,
         user: {} as never,
       });
+
+    it("upserts the user and grants admin from the client role", async () => {
+      const { db, upsert } = fakeDb();
+      const { log, lines } = recorder();
+      const { jwt } = buildAuthConfig(() => db, { log, roleConfig }).callbacks!;
+      const token = await signIn(jwt, ["admin"]);
       expect(upsert).toHaveBeenCalledOnce();
       expect(token).toMatchObject({
         userId: "user-1",
         name: "Alice Admin",
         email: "alice@example.com",
-        roles: ["shoutout-admin"],
+        roles: ["shoutout-user", "shoutout-admin"],
         idToken: "id-token",
       });
+      expect(lines).toEqual([
+        expect.objectContaining({
+          level: "info",
+          msg: "Signed in",
+          sub: "kc-1",
+          username: "alice",
+          admin: true,
+          rolesClient: "shoutout-web",
+          clientRoles: ["admin"],
+        }),
+      ]);
+    });
+
+    it("makes everyone else a user, and says where roles were found", async () => {
+      const { db } = fakeDb();
+      const { log, lines } = recorder();
+      const { jwt } = buildAuthConfig(() => db, {
+        log,
+        roleConfig: { ...roleConfig, clientId: "other-client" },
+      }).callbacks!;
+      expect((await signIn(jwt, ["admin"]))?.roles).toEqual(["shoutout-user"]);
+      expect(lines.map((l) => l.msg)).toEqual([
+        "Signed in",
+        "No client roles for the configured roles client",
+      ]);
+      expect(lines[1]).toMatchObject({
+        rolesClient: "other-client",
+        clientsWithRoles: ["shoutout-web"],
+      });
+    });
+
+    it("logs why saving the user failed, then fails the sign-in", async () => {
+      const { db, upsert } = fakeDb();
+      upsert.mockRejectedValue(new Error("Keycloak did not send the email claim."));
+      const { log, lines } = recorder();
+      const { jwt } = buildAuthConfig(() => db, { log, roleConfig }).callbacks!;
+      await expect(signIn(jwt, [])).rejects.toThrow(/email claim/);
+      expect(lines).toEqual([
+        expect.objectContaining({
+          level: "error",
+          msg: "Sign-in failed while saving the user",
+          claimsPresent: ["email", "preferred_username", "sub"],
+          error: expect.objectContaining({ message: "Keycloak did not send the email claim." }),
+        }),
+      ]);
     });
 
     it("passes the token through on later requests", async () => {
       const { db, upsert } = fakeDb();
-      const { jwt } = buildAuthConfig(() => db).callbacks!;
+      const { jwt } = buildAuthConfig(() => db, { log: recorder().log }).callbacks!;
       const existing = { userId: "user-1" } as JWT;
       expect(await jwt!({ token: existing, account: null, user: {} as never })).toBe(existing);
       expect(upsert).not.toHaveBeenCalled();
@@ -95,12 +164,42 @@ describe("buildAuthConfig", () => {
       expect(result.user).toMatchObject({ id: "user-1", roles: ["shoutout-user"] });
     });
 
-    it("defaults roles to an empty list", async () => {
+    it("treats sessions without roles as ordinary users", async () => {
       const result = await sessionCallback!({
         session: { user: {} } as Session,
         token: { userId: "user-1" } as JWT,
       } as never);
-      expect((result as Session).user.roles).toEqual([]);
+      expect((result as Session).user.roles).toEqual(["shoutout-user"]);
+    });
+  });
+});
+
+describe("authLogger", () => {
+  it("sends Auth.js errors (with causes), warnings and debug output to the logger", () => {
+    const { log, lines } = recorder();
+    const logger = authLogger(log);
+    const failure = new Error("CallbackRouteError", {
+      cause: { err: Object.assign(new Error("fetch failed"), { code: "ECONNREFUSED" }) },
+    });
+    logger.error!(failure);
+    logger.warn!("debug-enabled");
+    logger.debug!("callback", { access_token: "secret-token", ok: true });
+    expect(lines[0]).toMatchObject({
+      level: "error",
+      error: {
+        message: "CallbackRouteError",
+        cause: { message: "fetch failed", code: "ECONNREFUSED" },
+      },
+    });
+    expect(lines[1]).toMatchObject({
+      level: "warn",
+      warning: "debug-enabled",
+      docs: expect.stringContaining("#debug-enabled"),
+    });
+    expect(lines[2]).toMatchObject({
+      level: "debug",
+      msg: "Auth.js: callback",
+      metadata: { access_token: "[redacted]", ok: true },
     });
   });
 });

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { captureLogs } from "../../../../../test/logs";
 
 const runKeycloakSync = vi.fn();
 vi.mock("@/lib/db", () => ({ getDb: () => ({}) }));
@@ -25,6 +26,7 @@ describe("POST /api/internal/sync-users", () => {
 
   afterEach(() => {
     vi.unstubAllEnvs();
+    vi.restoreAllMocks();
     runKeycloakSync.mockReset();
   });
 
@@ -48,17 +50,23 @@ describe("POST /api/internal/sync-users", () => {
   });
 
   it("runs the sync", async () => {
+    const logs = captureLogs();
     runKeycloakSync.mockResolvedValue({ created: 1, updated: 2, deactivated: 0, skipped: 0 });
     const res = await POST(request("Bearer sync-token-123"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ created: 1, updated: 2, deactivated: 0, skipped: 0 });
+    expect(logs.find("Scheduled sync complete")).toMatchObject({ created: 1, updated: 2 });
   });
 
   it("reports sync failures", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    const logs = captureLogs();
     runKeycloakSync.mockRejectedValue(new Error("boom"));
     const res = await POST(request("Bearer sync-token-123"));
     expect(res.status).toBe(502);
     expect(await res.json()).toEqual({ error: "sync failed" });
+    expect(logs.find("Scheduled sync failed")).toMatchObject({
+      level: "error",
+      error: { message: "boom" },
+    });
   });
 });

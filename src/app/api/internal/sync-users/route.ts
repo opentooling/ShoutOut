@@ -1,8 +1,11 @@
 import { timingSafeEqual } from "node:crypto";
 import { getDb } from "@/lib/db";
+import { createLogger } from "@/lib/logger";
 import { runKeycloakSync, syncCredentialsFromEnv } from "@/server/users/sync-users";
 
 export const dynamic = "force-dynamic";
+
+const log = createLogger("user-sync");
 
 function tokenMatches(header: string | null, expected: string | undefined): boolean {
   if (!expected || !header?.startsWith("Bearer ")) return false;
@@ -22,9 +25,10 @@ export async function POST(request: Request) {
   }
   try {
     const result = await runKeycloakSync(getDb(), credentials);
+    log.info("Scheduled sync complete", { ...result });
     return Response.json(result);
   } catch (error) {
-    console.error("[user-sync] sync failed:", (error as Error).message);
+    log.error("Scheduled sync failed", { error });
     return Response.json({ error: "sync failed" }, { status: 502 });
   }
 }

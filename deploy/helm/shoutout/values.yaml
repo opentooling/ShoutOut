@@ -77,6 +77,12 @@ app:
   imagePullSecrets: []
   podAnnotations: {}
   extraEnv: []
+  # -- Extra CA certificates to trust, e.g. when Keycloak uses a company CA.
+  # Point at a ConfigMap or Secret holding a PEM bundle; sets NODE_EXTRA_CA_CERTS.
+  extraCaCerts:
+    configMap: ""
+    secret: ""
+    key: ca.crt
   hostAliases: []
   resources:
     requests: { cpu: 100m, memory: 192Mi }
@@ -94,10 +100,23 @@ app:
   affinity: {}
 
 # Authentication (Keycloak OIDC).
+# Everyone who can sign in to the Keycloak client can use ShoutOut; no role or
+# directory group is needed. Admins need a client role (below).
 auth:
   clientId: shoutout-web
   # -- Issuer URL. Defaults to the bundled Keycloak: <keycloak.url>/realms/<realm>.
   issuer: ""
+  # -- Client role that makes someone an admin (SHOUTOUT_ADMIN_ROLE).
+  adminRole: admin
+  # -- Client that holds the admin role; defaults to auth.clientId (SHOUTOUT_ROLES_CLIENT_ID).
+  rolesClientId: ""
+
+# App logs: JSON lines on stdout/stderr.
+logging:
+  # -- debug | info | warn | error. "debug" also logs Auth.js OIDC traffic (secrets redacted).
+  level: info
+  # -- json, or text for easier reading with kubectl logs.
+  format: json
 
 # Database used by the app.
 database:

@@ -9,7 +9,7 @@ See [docs/PRODUCT.md](docs/PRODUCT.md) for scope and milestones and
 ## Stack
 
 - **Next.js 16** (App Router, TypeScript, Tailwind CSS 4) — UI and server in one app
-- **Auth.js v5** with **Keycloak** (OIDC); roles `shoutout-user` / `shoutout-admin`
+- **Auth.js v5** with **Keycloak** (OIDC); everyone who signs in is a user, admins need a client role
 - **PostgreSQL 17** with plain SQL via [`pg`](https://node-postgres.com) (no ORM); migrations are `.sql` files in `db/migrations`
 - **Vitest** (unit, component, integration with Testcontainers) and **Playwright** (E2E)
 - **Docker** images and a **Helm** chart (app + PostgreSQL + Keycloak)
@@ -91,9 +91,28 @@ Keycloak admin console password:
 kubectl -n shoutout get secret shoutout-secrets -o jsonpath='{.data.keycloak-admin-password}' | base64 -d
 ```
 
+## Access
+
+- **Everyone who can sign in is a user.** No Keycloak role or directory (AD) group
+  is needed to send and receive shoutouts.
+- **Admins need a client role**: `admin` on the ShoutOut client (`auth.clientId`,
+  default `shoutout-web`). Change the role name with `auth.adminRole`, or read it
+  from another client with `auth.rolesClientId`.
+- Role changes apply at the next sign-in.
+
+Setting it up in your own Keycloak:
+
+1. Clients → _shoutout-web_ → **Roles** → create `admin`.
+2. Give it to your admins: Users → _user_ → **Role mapping** → assign the client
+   role, or assign it to a group (e.g. one mapped from an AD group).
+3. Keep the default **roles** client scope on the client. It puts
+   `resource_access.<client>.roles` in the access token, which is where ShoutOut
+   looks (it also reads the ID token if you add a client-role mapper there).
+4. Keep the **email** client scope: ShoutOut needs every user's email address.
+
 ## Admin
 
-Users with the Keycloak role `shoutout-admin` get an **Admin** area:
+Admins get an **Admin** area:
 
 - **Moderation** – reported shoutouts are hidden straight away; restore or remove them.
 - **Cards** – create cards from the built-in illustrations and colours, edit, reorder, retire.
@@ -111,8 +130,36 @@ Users with the Keycloak role `shoutout-admin` get an **Admin** area:
 | –                                          | `userSync.schedule`                      | `0 * * * *`      | CronJob schedule for the Keycloak people sync                                            |
 | `SHOUTOUT_SYNC_TOKEN`                      | `secrets.syncToken`                      | generated        | Bearer token for `POST /api/internal/sync-users`                                         |
 | `AUTH_KEYCLOAK_ISSUER` / `_ID` / `_SECRET` | `auth.*`, `secrets.keycloakClientSecret` | bundled Keycloak | OIDC client; its service account needs realm-management `view-users` for the people sync |
+| `SHOUTOUT_ADMIN_ROLE`                      | `auth.adminRole`                         | `admin`          | Client role that grants admin                                                            |
+| `SHOUTOUT_ROLES_CLIENT_ID`                 | `auth.rolesClientId`                     | `auth.clientId`  | Client whose roles are checked                                                           |
+| `LOG_LEVEL` / `LOG_FORMAT`                 | `logging.level` / `logging.format`       | `info` / `json`  | Log threshold (`debug` adds Auth.js OIDC traffic, secrets redacted); `text` for humans   |
+| `NODE_EXTRA_CA_CERTS`                      | `app.extraCaCerts`                       | –                | Extra trusted CAs (ConfigMap or Secret with a PEM bundle), e.g. a company CA             |
 
 Example: `helm upgrade shoutout deploy/helm/shoutout --reuse-values --set config.quarterlyBudget=30`
+
+## Troubleshooting sign-in
+
+The app logs JSON lines with a `scope` (`auth`, `user-sync`, `request`). Start with:
+
+```bash
+kubectl -n shoutout logs deploy/shoutout-app | grep '"scope":"auth"'
+```
+
+- **At startup** it logs its auth settings (never secret values) and checks
+  Keycloak's discovery URL. Look for `Keycloak discovery OK`, or an error naming
+  the problem: an untrusted certificate (`errorCode` like
+  `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`), an unresolvable host, or Keycloak
+  reporting a different issuer than `AUTH_KEYCLOAK_ISSUER`.
+- **Each sign-in** logs `Signed in` with the user, whether they are an admin and
+  which client roles were found, or `Sign-in failed while saving the user` with
+  the claims Keycloak sent (e.g. no `email`).
+- **Auth.js errors** are logged with their full cause chain. Set
+  `logging.level=debug` to also see the OIDC requests and responses.
+- A failed sign-in lands on the sign-in page with a short message; the details
+  are only in the log.
+
+Company CA: `kubectl -n shoutout create configmap corp-ca --from-file=ca.crt=corp-ca.pem`,
+then `--set app.extraCaCerts.configMap=corp-ca`.
 
 ## Helm chart
 

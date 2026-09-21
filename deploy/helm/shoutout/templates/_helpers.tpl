@@ -104,9 +104,19 @@ Call with (dict "ctx" $ "key" "auth-secret" "value" .Values.secrets.authSecret)
 {{- end }}
 {{- end }}
 
+{{- define "shoutout.extraCaCerts.enabled" -}}
+{{- if or .Values.app.extraCaCerts.configMap .Values.app.extraCaCerts.secret }}true{{ end }}
+{{- end }}
+
 {{- define "shoutout.validateConfig" -}}
 {{- if not (has .Values.config.analyticsVisibility (list "admins" "everyone")) }}
 {{- fail (printf "config.analyticsVisibility must be \"admins\" or \"everyone\", got %q" .Values.config.analyticsVisibility) }}
+{{- end }}
+{{- if not (has .Values.logging.level (list "debug" "info" "warn" "error")) }}
+{{- fail (printf "logging.level must be debug, info, warn or error, got %q" .Values.logging.level) }}
+{{- end }}
+{{- if and .Values.app.extraCaCerts.configMap .Values.app.extraCaCerts.secret }}
+{{- fail "app.extraCaCerts: set configMap or secret, not both" }}
 {{- end }}
 {{- end }}
 

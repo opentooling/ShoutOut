@@ -1,5 +1,8 @@
 import { getDb } from "@/lib/db";
+import { createLogger } from "@/lib/logger";
 import { runKeycloakSync, syncCredentialsFromEnv } from "./sync-users";
+
+const log = createLogger("user-sync");
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -20,20 +23,25 @@ export async function startupSync({
 } = {}): Promise<boolean> {
   const credentials = syncCredentialsFromEnv(env);
   if (!credentials || env.SHOUTOUT_SYNC_ON_STARTUP === "false") {
+    log.info("Startup sync skipped", {
+      reason: credentials
+        ? "SHOUTOUT_SYNC_ON_STARTUP=false"
+        : "Keycloak client settings are missing",
+    });
     return false;
   }
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       const result = await run(getDb(), credentials);
-      console.info("[user-sync] startup sync complete", result);
+      log.info("Startup sync complete", { ...result });
       return true;
     } catch (error) {
-      console.warn(
-        `[user-sync] startup sync attempt ${attempt}/${attempts} failed:`,
-        (error as Error).message,
-      );
+      log.warn("Startup sync attempt failed", { attempt, attempts, error });
       if (attempt < attempts) await sleep(delayMs);
     }
   }
+  log.error("Startup sync gave up; people appear when they sign in or the hourly sync succeeds", {
+    attempts,
+  });
   return false;
 }

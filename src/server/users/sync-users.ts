@@ -1,4 +1,5 @@
 import type { Db } from "@/lib/db";
+import { createLogger } from "@/lib/logger";
 import { sql } from "@/lib/sql";
 import {
   fetchAllUsers,
@@ -7,6 +8,8 @@ import {
   type KeycloakUser,
 } from "./keycloak-admin";
 import { displayName, findByKeycloakIdOrEmail } from "./upsert-from-oidc";
+
+const log = createLogger("user-sync");
 
 export interface SyncResult {
   created: number;
@@ -52,7 +55,7 @@ export async function syncUsers(db: Db, users: KeycloakUser[]): Promise<SyncResu
       }
     } catch (error) {
       // e.g. an email clash with another user; keep syncing everyone else.
-      console.warn(`[user-sync] skipped Keycloak user ${user.id}:`, (error as Error).message);
+      log.warn("Skipped a Keycloak user", { keycloakId: user.id, username: user.username, error });
       result.skipped++;
     }
   }

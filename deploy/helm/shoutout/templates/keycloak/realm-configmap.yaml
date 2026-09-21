@@ -12,8 +12,8 @@
 {{- fail "keycloak.realm.demoUserPassword is required when seedDemoUsers=true" }}
 {{- end }}
 {{- range (.Files.Get "files/demo-users.yaml" | fromYamlArray) }}
-{{- $roles := list "default-roles-shoutout" }}
-{{- if .admin }}{{- $roles = append $roles "shoutout-admin" }}{{- end }}
+{{- $clientRoles := dict }}
+{{- if .admin }}{{- $clientRoles = dict $.Values.auth.clientId (list $.Values.auth.adminRole) }}{{- end }}
 {{- $users = append $users (dict
       "username" .username
       "email" (printf "%s@shoutout.local" .username)
@@ -21,7 +21,7 @@
       "lastName" .lastName
       "enabled" true
       "emailVerified" true
-      "realmRoles" $roles
+      "clientRoles" $clientRoles
       "credentials" (list (dict "type" "password" "value" $realm.demoUserPassword "temporary" false))) }}
 {{- end }}
 {{- end }}
@@ -35,12 +35,9 @@
   "duplicateEmailsAllowed" false
   "resetPasswordAllowed" false
   "bruteForceProtected" true
-  "roles" (dict "realm" (list
-      (dict "name" "shoutout-user" "description" "Can send and receive shoutouts")
-      (dict "name" "shoutout-admin" "description" "Manages cards, values, moderation and analytics" "composite" true "composites" (dict "realm" (list "shoutout-user")))
-      (dict "name" "default-roles-shoutout" "description" "Default roles for new users" "composite" true "composites" (dict "realm" (list "shoutout-user")))
-  ))
-  "defaultRole" (dict "name" "default-roles-shoutout")
+  "roles" (dict "client" (dict .Values.auth.clientId (list
+      (dict "name" .Values.auth.adminRole "description" "ShoutOut admin: cards, values, moderation, exports and analytics")
+  )))
   "clients" (list (dict
       "clientId" .Values.auth.clientId
       "name" "ShoutOut"
@@ -59,10 +56,10 @@
       "webOrigins" (list $appUrl)
       "attributes" (dict "post.logout.redirect.uris" (printf "%s/*" $appUrl) "pkce.code.challenge.method" "S256")
       "protocolMappers" (list (dict
-          "name" "realm roles"
+          "name" "client roles"
           "protocol" "openid-connect"
-          "protocolMapper" "oidc-usermodel-realm-role-mapper"
-          "config" (dict "multivalued" "true" "claim.name" "roles" "jsonType.label" "String" "id.token.claim" "true" "access.token.claim" "true" "userinfo.token.claim" "true")))
+          "protocolMapper" "oidc-usermodel-client-role-mapper"
+          "config" (dict "multivalued" "true" "usermodel.clientRoleMapping.clientId" .Values.auth.clientId "claim.name" (printf "resource_access.%s.roles" .Values.auth.clientId) "jsonType.label" "String" "id.token.claim" "true" "access.token.claim" "true" "userinfo.token.claim" "true")))
   ))
   "users" $users
 -}}

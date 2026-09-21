@@ -42,9 +42,12 @@ describe("upsertUserFromOidc (postgres)", () => {
 
   it("rejects profiles without sub or email", async () => {
     await expect(upsertUserFromOidc(db, { email: "x@example.com" })).rejects.toThrow(
-      /missing sub or email/,
+      /did not send the sub claim\./,
     );
-    await expect(upsertUserFromOidc(db, { sub: "kc-2" })).rejects.toThrow(/missing sub or email/);
+    await expect(upsertUserFromOidc(db, { sub: "kc-2" })).rejects.toThrow(
+      /did not send the email claim\. .*'email' client scope/,
+    );
+    await expect(upsertUserFromOidc(db, {})).rejects.toThrow(/the sub and email claims\./);
   });
 });
 
