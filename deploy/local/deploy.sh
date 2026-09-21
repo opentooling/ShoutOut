@@ -102,7 +102,10 @@ KEYCLOAK_DEPLOY="$RELEASE-keycloak"
 if [[ -n "${RESET_KEYCLOAK_REALM:-}" ]] && kubectl -n "$NAMESPACE" get deploy "$KEYCLOAK_DEPLOY" >/dev/null 2>&1; then
   log "Deleting the Keycloak realm so it is re-imported"
   ADMIN_PASSWORD="$(kubectl -n "$NAMESPACE" get secret "$RELEASE-secrets" -o jsonpath='{.data.keycloak-admin-password}' | base64 -d)"
-  kubectl -n "$NAMESPACE" exec "deploy/$KEYCLOAK_DEPLOY" -- sh -c \
+  # Use a running pod: after evictions, "deploy/<name>" can resolve to a failed one.
+  KEYCLOAK_POD="$(kubectl -n "$NAMESPACE" get pods -l app.kubernetes.io/component=keycloak \
+    --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}')"
+  kubectl -n "$NAMESPACE" exec "$KEYCLOAK_POD" -- sh -c \
     "/opt/keycloak/bin/kcadm.sh config credentials --config /tmp/kcadm.config --server http://localhost:8080 --realm master --user admin --password '$ADMIN_PASSWORD' \
      && /opt/keycloak/bin/kcadm.sh delete realms/shoutout --config /tmp/kcadm.config" || true
 fi
