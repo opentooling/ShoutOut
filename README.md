@@ -110,6 +110,9 @@ Setting it up in your own Keycloak:
    looks (it also reads the ID token if you add a client-role mapper there).
 4. Keep the **email** client scope: ShoutOut needs every user's email address.
 
+To sync people from your Keycloak before they first sign in, follow
+[docs/KEYCLOAK-USER-SYNC.md](docs/KEYCLOAK-USER-SYNC.md).
+
 ## Admin
 
 Admins get an **Admin** area:
