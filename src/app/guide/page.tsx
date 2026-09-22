@@ -52,14 +52,20 @@ function Section({ section }: { section: GuideSection }) {
       )}
       {size && (
         <figure className="mt-6">
-          <Image
-            src={`/guide/${shot.file}`}
-            alt={shot.alt}
-            width={size.width}
-            height={size.height}
-            unoptimized
-            className="h-auto w-full rounded-2xl border-2 border-border"
-          />
+          {/* Opens full size: handy on phones, where full-page screenshots are small. */}
+          <a href={`/guide/${shot.file}`} target="_blank" rel="noopener">
+            <Image
+              src={`/guide/${shot.file}`}
+              alt={shot.alt}
+              width={size.width}
+              height={size.height}
+              unoptimized
+              className="h-auto w-full rounded-2xl border-2 border-border"
+            />
+          </a>
+          <figcaption className="mt-2 text-xs text-muted">
+            Select the picture to see it full size.
+          </figcaption>
         </figure>
       )}
     </section>

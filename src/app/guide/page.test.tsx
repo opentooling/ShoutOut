@@ -45,6 +45,7 @@ describe("GuidePage", () => {
     const feed = screen.getByRole("img", { name: GUIDE_SECTIONS[1].screenshot.alt });
     expect(feed).toHaveAttribute("src", "/guide/feed.jpg");
     expect(feed).toHaveAttribute("width", "1800");
+    expect(feed.closest("a")).toHaveAttribute("href", "/guide/feed.jpg");
     // Sections whose screenshot hasn't been captured still render, without an image.
     expect(within(sending).queryByRole("img")).not.toBeInTheDocument();
   });
