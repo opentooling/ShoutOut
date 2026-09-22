@@ -152,10 +152,12 @@ async function fetchUserSlice(
   // If parsing failed (e.g. response truncated by proxy buffer limit), subdivide into smaller batches
   if (count > 5 && depth < 4) {
     const half = Math.ceil(count / 2);
-    log.warn(
-      "Keycloak user listing response was malformed or truncated; subdividing batch",
-      { first, count, half, error: String(lastError) },
-    );
+    log.warn("Keycloak user listing response was malformed or truncated; subdividing batch", {
+      first,
+      count,
+      half,
+      error: String(lastError),
+    });
     const firstHalf = await fetchUserSlice(fetchImpl, base, getValidToken, first, half, depth + 1);
     // If fewer users than requested were returned, we reached the end of the realm
     if (firstHalf.length < half) {

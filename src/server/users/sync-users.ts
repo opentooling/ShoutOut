@@ -1,12 +1,7 @@
 import type { Db } from "@/lib/db";
 import { createLogger } from "@/lib/logger";
 import { sql } from "@/lib/sql";
-import {
-  fetchAllUsers,
-  fetchServiceToken,
-  type KeycloakClientCredentials,
-  type KeycloakUser,
-} from "./keycloak-admin";
+import { fetchAllUsers, type KeycloakClientCredentials, type KeycloakUser } from "./keycloak-admin";
 import { displayName, findByKeycloakIdOrEmail } from "./upsert-from-oidc";
 
 const log = createLogger("user-sync");

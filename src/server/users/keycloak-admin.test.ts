@@ -197,7 +197,10 @@ describe("fetchAllUsers", () => {
       // Second attempt (retry) returns complete JSON
       .mockResolvedValueOnce(json([user(1)]));
 
-    const users = await fetchAllUsers({ issuer: "http://kc/realms/r", token: "t", pageSize: 2 }, fetchImpl);
+    const users = await fetchAllUsers(
+      { issuer: "http://kc/realms/r", token: "t", pageSize: 2 },
+      fetchImpl,
+    );
     expect(users.map((u) => u.id)).toEqual(["u1"]);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
@@ -230,7 +233,16 @@ describe("fetchAllUsers", () => {
     );
     expect(users).toHaveLength(10);
     expect(users.map((u) => u.id)).toEqual([
-      "u1", "u2", "u3", "u4", "u5", "u6", "u7", "u8", "u9", "u10",
+      "u1",
+      "u2",
+      "u3",
+      "u4",
+      "u5",
+      "u6",
+      "u7",
+      "u8",
+      "u9",
+      "u10",
     ]);
   });
 });
