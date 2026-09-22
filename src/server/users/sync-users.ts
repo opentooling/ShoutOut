@@ -23,10 +23,7 @@ export interface IsSyncableOptions {
 }
 
 /** Service accounts, users without email, disabled users (if enabledOnly), and accounts not matching pattern are skipped. */
-export function isSyncable(
-  user: KeycloakUser,
-  options?: RegExp | IsSyncableOptions,
-): boolean {
+export function isSyncable(user: KeycloakUser, options?: RegExp | IsSyncableOptions): boolean {
   const pattern = options instanceof RegExp ? options : options?.pattern;
   const enabledOnly = !(options instanceof RegExp) && options?.enabledOnly;
 

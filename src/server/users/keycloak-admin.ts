@@ -161,7 +161,15 @@ async function fetchUserSlice(
       half,
       error: String(lastError),
     });
-    const firstHalf = await fetchUserSlice(fetchImpl, base, getValidToken, first, half, enabled, depth + 1);
+    const firstHalf = await fetchUserSlice(
+      fetchImpl,
+      base,
+      getValidToken,
+      first,
+      half,
+      enabled,
+      depth + 1,
+    );
     // If fewer users than requested were returned, we reached the end of the realm
     if (firstHalf.length < half) {
       return firstHalf;
