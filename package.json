@@ -16,7 +16,9 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "format:check": "prettier --check .",
-    "audit:deps": "npm audit --audit-level=high"
+    "audit:deps": "npm audit --audit-level=high",
+    "guide:screenshots": "playwright test -c playwright.guide.config.ts && npm run guide:docs",
+    "guide:docs": "node --experimental-strip-types --no-warnings scripts/build-user-guide.ts"
   },
   "dependencies": {
     "next": "16.3.5",

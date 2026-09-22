@@ -3,6 +3,9 @@
 Recognise the people who make work better. ShoutOut is an internal kudos
 platform: send a colleague a card, tag a company value and say thanks.
 
+New users: start with the [user guide](docs/USER-GUIDE.md) (also in the app at `/guide`).
+Regenerate its screenshots against a running deployment with `npm run guide:screenshots`.
+
 See [docs/PRODUCT.md](docs/PRODUCT.md) for scope and milestones and
 [docs/BRAND.md](docs/BRAND.md) for the brand guidelines (live style guide at `/brand`).
 

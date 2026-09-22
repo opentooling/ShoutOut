@@ -87,6 +87,10 @@ describe("HomePage", () => {
       "/shoutouts/new",
     );
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "17");
+    expect(screen.getByRole("link", { name: "Read the user guide" })).toHaveAttribute(
+      "href",
+      "/guide",
+    );
     expect(screen.getByRole("heading", { name: "Latest shoutouts" })).toBeInTheDocument();
     expect(screen.getByText(/be the first to say thanks/i)).toBeInTheDocument();
     expect(FeedFilters.mock.calls[0][0]).toMatchObject({

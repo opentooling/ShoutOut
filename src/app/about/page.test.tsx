@@ -33,6 +33,10 @@ describe("AboutPage", () => {
     render(await AboutPage());
     expect(screen.getByRole("heading", { level: 1, name: /why shoutout/i })).toBeInTheDocument();
     expect(screen.getByText("header for Bob Baker")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Read the user guide" })).toHaveAttribute(
+      "href",
+      "/guide",
+    );
     expect(screen.getByRole("heading", { name: /look beyond your own team/i })).toBeInTheDocument();
     expect(screen.getByText("Integrity")).toBeInTheDocument();
     expect(screen.getByText("Collaboration")).toBeInTheDocument();

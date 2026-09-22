@@ -44,9 +44,21 @@ test.describe("branding", () => {
     await expect(page).toHaveURL(/\/signin/);
   });
 
+  test("the user guide is readable without signing in, with its screenshots", async ({ page }) => {
+    await page.goto("/guide");
+    await expect(page).toHaveTitle("User guide · ShoutOut");
+    await page.getByRole("link", { name: "Sending a shoutout" }).click();
+    await expect(page).toHaveURL(/#sending-a-shoutout$/);
+    const image = page.getByRole("img", { name: /Send a shoutout form/ });
+    await image.scrollIntoViewIfNeeded();
+    await expect
+      .poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
+      .toBeGreaterThan(0);
+  });
+
   test("no horizontal scrolling on a phone", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    for (const path of ["/signin", "/brand", "/about"]) {
+    for (const path of ["/signin", "/brand", "/about", "/guide"]) {
       await page.goto(path);
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth,

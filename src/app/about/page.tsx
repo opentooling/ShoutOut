@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { auth } from "@/auth";
-import { Logo } from "@/components/brand/logo";
-import { AppHeader } from "@/components/layout/app-header";
+import { SiteHeader } from "@/components/layout/site-header";
 import { buttonClasses } from "@/components/ui/button";
 import { loadConfig, MESSAGE_MAX_LENGTH } from "@/lib/config";
 import { getDb } from "@/lib/db";
@@ -47,26 +46,20 @@ export default async function AboutPage() {
 
   return (
     <>
-      {session?.user ? (
-        <AppHeader user={session.user} />
-      ) : (
-        <header className="border-b-2 border-border">
-          <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-            <Link href="/" aria-label="ShoutOut home">
-              <Logo className="h-9" />
-            </Link>
-            <Link href="/signin" className={buttonClasses({ variant: "secondary", size: "sm" })}>
-              Sign in
-            </Link>
-          </div>
-        </header>
-      )}
+      <SiteHeader user={session?.user} />
       <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-8 sm:px-6">
         <div className="text-center">
           <h1 className="font-display text-4xl font-semibold">Why ShoutOut?</h1>
           <p className="mx-auto mt-3 max-w-xl text-lg text-muted">
             Good work happens all day long and most of it goes unsaid. ShoutOut is a place to say it
             out loud, so the people who make your work easier hear it, and so does everyone else.
+          </p>
+          <p className="mt-2 text-sm text-muted">
+            Looking for how-to steps?{" "}
+            <Link href="/guide" className="font-bold text-teal-strong hover:underline">
+              Read the user guide
+            </Link>
+            .
           </p>
         </div>
 

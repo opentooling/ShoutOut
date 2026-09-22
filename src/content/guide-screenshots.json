@@ -1,0 +1,62 @@
+{
+  "admin-cards.jpg": {
+    "width": 1572,
+    "height": 1650
+  },
+  "admin-export.jpg": {
+    "width": 1572,
+    "height": 1287
+  },
+  "admin-moderation.jpg": {
+    "width": 1572,
+    "height": 1622
+  },
+  "analytics.jpg": {
+    "width": 1764,
+    "height": 1650
+  },
+  "budget.jpg": {
+    "width": 564,
+    "height": 432
+  },
+  "dark.jpg": {
+    "width": 1800,
+    "height": 1350
+  },
+  "detail.jpg": {
+    "width": 1044,
+    "height": 1293
+  },
+  "edit-delete.jpg": {
+    "width": 1116,
+    "height": 427
+  },
+  "feed.jpg": {
+    "width": 1800,
+    "height": 1350
+  },
+  "filters.jpg": {
+    "width": 1116,
+    "height": 789
+  },
+  "leaderboard.jpg": {
+    "width": 1764,
+    "height": 1287
+  },
+  "profile.jpg": {
+    "width": 1800,
+    "height": 1350
+  },
+  "report.jpg": {
+    "width": 1044,
+    "height": 1397
+  },
+  "send.jpg": {
+    "width": 1572,
+    "height": 1739
+  },
+  "signin.jpg": {
+    "width": 1800,
+    "height": 1350
+  }
+}

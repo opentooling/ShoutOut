@@ -77,6 +77,12 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
                 remaining={budget.remaining}
                 resetsAt={budget.resetsAt}
               />
+              <p className="mt-4 text-sm text-muted">
+                New here?{" "}
+                <Link href="/guide" className="font-bold text-teal-strong hover:underline">
+                  Read the user guide
+                </Link>
+              </p>
             </section>
             <div className="hidden lg:block">
               <LeaderboardBoard
