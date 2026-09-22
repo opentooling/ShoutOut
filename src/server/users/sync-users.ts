@@ -86,7 +86,6 @@ export async function runKeycloakSync(
   credentials: KeycloakClientCredentials,
   fetchImpl: typeof fetch = fetch,
 ): Promise<SyncResult> {
-  const token = await fetchServiceToken(credentials, fetchImpl);
-  const users = await fetchAllUsers({ issuer: credentials.issuer, token }, fetchImpl);
+  const users = await fetchAllUsers({ credentials }, fetchImpl);
   return syncUsers(db, users);
 }

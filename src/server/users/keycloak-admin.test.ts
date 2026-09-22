@@ -119,4 +119,73 @@ describe("fetchAllUsers", () => {
       fetchAllUsers({ issuer: "http://kc/realms/r", token: "t" }, failing),
     ).rejects.toThrow("Keycloak user listing failed with HTTP 403");
   });
+
+  it("fetches service token from credentials and refreshes on 401", async () => {
+    const credentials = {
+      issuer: "http://kc/realms/r",
+      clientId: "id",
+      clientSecret: "sec",
+    };
+    const fetchImpl = vi
+      .fn()
+      // Initial token fetch
+      .mockResolvedValueOnce(json({ access_token: "token-1" }))
+      // Page 1 succeeds
+      .mockResolvedValueOnce(json([user(1), user(2)]))
+      // Page 2 returns 401 (token expired)
+      .mockResolvedValueOnce(json({ error: "invalid_token" }, 401))
+      // Refreshed token fetch
+      .mockResolvedValueOnce(json({ access_token: "token-2" }))
+      // Page 2 retry succeeds
+      .mockResolvedValueOnce(json([user(3)]));
+
+    const users = await fetchAllUsers({ credentials, pageSize: 2 }, fetchImpl);
+    expect(users.map((u) => u.id)).toEqual(["u1", "u2", "u3"]);
+    expect(fetchImpl).toHaveBeenCalledTimes(5);
+
+    // Call 0: Initial token request
+    expect(fetchImpl.mock.calls[0][0]).toBe("http://kc/realms/r/protocol/openid-connect/token");
+    // Call 1: Page 1 with token-1
+    expect(fetchImpl.mock.calls[1][1].headers).toEqual({ authorization: "Bearer token-1" });
+    // Call 2: Page 2 with token-1 (failed with 401)
+    expect(fetchImpl.mock.calls[2][1].headers).toEqual({ authorization: "Bearer token-1" });
+    // Call 3: Token refresh
+    expect(fetchImpl.mock.calls[3][0]).toBe("http://kc/realms/r/protocol/openid-connect/token");
+    // Call 4: Page 2 retry with token-2
+    expect(fetchImpl.mock.calls[4][1].headers).toEqual({ authorization: "Bearer token-2" });
+  });
+
+  it("proactively refreshes token when tokenRefreshIntervalMs expires", async () => {
+    vi.useFakeTimers();
+    try {
+      const credentials = {
+        issuer: "http://kc/realms/r",
+        clientId: "id",
+        clientSecret: "sec",
+      };
+      const fetchImpl = vi
+        .fn()
+        // Initial token
+        .mockResolvedValueOnce(json({ access_token: "token-a" }))
+        // Page 1
+        .mockImplementationOnce(async () => {
+          vi.advanceTimersByTime(5000);
+          return json([user(1), user(2)]);
+        })
+        // Proactive token refresh
+        .mockResolvedValueOnce(json({ access_token: "token-b" }))
+        // Page 2
+        .mockResolvedValueOnce(json([]));
+
+      const users = await fetchAllUsers(
+        { credentials, pageSize: 2, tokenRefreshIntervalMs: 3000 },
+        fetchImpl,
+      );
+      expect(users.map((u) => u.id)).toEqual(["u1", "u2"]);
+      expect(fetchImpl.mock.calls[1][1].headers).toEqual({ authorization: "Bearer token-a" });
+      expect(fetchImpl.mock.calls[3][1].headers).toEqual({ authorization: "Bearer token-b" });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

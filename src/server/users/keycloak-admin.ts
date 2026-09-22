@@ -91,20 +91,68 @@ export async function fetchServiceToken(
   return body.access_token;
 }
 
-/** Lists every user in the realm, page by page. */
+export interface FetchAllUsersOptions {
+  issuer?: string;
+  token?: string;
+  credentials?: KeycloakClientCredentials;
+  pageSize?: number;
+  tokenRefreshIntervalMs?: number;
+}
+
+/** Lists every user in the realm, page by page, refreshing the service token as needed. */
 export async function fetchAllUsers(
-  { issuer, token, pageSize = 100 }: { issuer: string; token: string; pageSize?: number },
+  options: FetchAllUsersOptions,
   fetchImpl: Fetch = fetch,
 ): Promise<KeycloakUser[]> {
+  const {
+    credentials,
+    pageSize = 100,
+    tokenRefreshIntervalMs = 4 * 60 * 1000, // Proactively refresh after 4 minutes
+  } = options;
+
+  const issuer = options.issuer ?? credentials?.issuer;
+  if (!issuer) {
+    throw new Error("Neither issuer nor credentials provided to fetchAllUsers");
+  }
+
+  let token = options.token;
+  if (!token && credentials) {
+    token = await fetchServiceToken(credentials, fetchImpl);
+  }
+  if (!token) {
+    throw new Error("Neither token nor credentials provided to fetchAllUsers");
+  }
+
+  let tokenIssuedAt = Date.now();
   const base = keycloakAdminBase(issuer);
   const users: KeycloakUser[] = [];
+
   for (let first = 0; ; first += pageSize) {
-    const response = await request(
+    // Proactively refresh the token before it expires if credentials are available
+    if (credentials && Date.now() - tokenIssuedAt >= tokenRefreshIntervalMs) {
+      token = await fetchServiceToken(credentials, fetchImpl);
+      tokenIssuedAt = Date.now();
+    }
+
+    let response = await request(
       fetchImpl,
       `${base}/users?first=${first}&max=${pageSize}&briefRepresentation=true`,
       { headers: { authorization: `Bearer ${token}` } },
       "Keycloak user listing",
     );
+
+    // If the token expired midway (HTTP 401) and we have credentials, refresh and retry once
+    if (response.status === 401 && credentials) {
+      token = await fetchServiceToken(credentials, fetchImpl);
+      tokenIssuedAt = Date.now();
+      response = await request(
+        fetchImpl,
+        `${base}/users?first=${first}&max=${pageSize}&briefRepresentation=true`,
+        { headers: { authorization: `Bearer ${token}` } },
+        "Keycloak user listing",
+      );
+    }
+
     await expectOk(response, "Keycloak user listing");
     const page = (await response.json()) as KeycloakUser[];
     users.push(...page);
