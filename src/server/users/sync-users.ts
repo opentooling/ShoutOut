@@ -13,17 +13,39 @@ export interface SyncResult {
   skipped: number;
 }
 
-/** Service accounts and users without an email can't be recognised. */
-export function isSyncable(user: KeycloakUser): boolean {
-  return Boolean(user.email) && !user.username.startsWith("service-account-");
+/** Matches usernames formatted as firstname.lastname (e.g. john.doe, jane.smith-jones). */
+export const FIRSTNAME_LASTNAME_PATTERN =
+  /^[a-zA-Z0-9]+[a-zA-Z0-9._-]*\.[a-zA-Z0-9]+[a-zA-Z0-9._-]*$/;
+
+export interface IsSyncableOptions {
+  pattern?: RegExp;
+  enabledOnly?: boolean;
 }
 
-export async function syncUsers(db: Db, users: KeycloakUser[]): Promise<SyncResult> {
+/** Service accounts, users without email, disabled users (if enabledOnly), and accounts not matching pattern are skipped. */
+export function isSyncable(
+  user: KeycloakUser,
+  options?: RegExp | IsSyncableOptions,
+): boolean {
+  const pattern = options instanceof RegExp ? options : options?.pattern;
+  const enabledOnly = !(options instanceof RegExp) && options?.enabledOnly;
+
+  if (!user.email || user.username.startsWith("service-account-")) return false;
+  if (enabledOnly && !user.enabled) return false;
+  if (pattern && !pattern.test(user.username)) return false;
+  return true;
+}
+
+export async function syncUsers(
+  db: Db,
+  users: KeycloakUser[],
+  options?: RegExp | IsSyncableOptions,
+): Promise<SyncResult> {
   const result: SyncResult = { created: 0, updated: 0, deactivated: 0, skipped: 0 };
   const seen: string[] = [];
 
   for (const user of users) {
-    if (!isSyncable(user)) {
+    if (!isSyncable(user, options)) {
       result.skipped++;
       continue;
     }
@@ -76,11 +98,33 @@ export function syncCredentialsFromEnv(
   };
 }
 
+export function syncUsernamePatternFromEnv(
+  env: Record<string, string | undefined> = process.env,
+): RegExp | undefined {
+  const raw = env.SHOUTOUT_SYNC_USERNAME_PATTERN;
+  if (!raw) return undefined;
+  if (raw === "firstname.lastname") return FIRSTNAME_LASTNAME_PATTERN;
+  return new RegExp(raw);
+}
+
+export function syncEnabledOnlyFromEnv(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  return env.SHOUTOUT_SYNC_ENABLED_ONLY === "true";
+}
+
 export async function runKeycloakSync(
   db: Db,
   credentials: KeycloakClientCredentials,
   fetchImpl: typeof fetch = fetch,
+  syncOptions?: IsSyncableOptions,
+  env: Record<string, string | undefined> = process.env,
 ): Promise<SyncResult> {
-  const users = await fetchAllUsers({ credentials }, fetchImpl);
-  return syncUsers(db, users);
+  const enabledOnly = syncOptions?.enabledOnly ?? syncEnabledOnlyFromEnv(env);
+  const pattern = syncOptions?.pattern ?? syncUsernamePatternFromEnv(env);
+  const users = await fetchAllUsers(
+    { credentials, enabled: enabledOnly ? true : undefined },
+    fetchImpl,
+  );
+  return syncUsers(db, users, { pattern, enabledOnly });
 }

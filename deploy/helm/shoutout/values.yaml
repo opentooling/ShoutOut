@@ -64,6 +64,10 @@ userSync:
   onStartup: true
   # -- CronJob schedule for regular syncs.
   schedule: "0 * * * *"
+  # -- Only fetch and sync enabled users from Keycloak (SHOUTOUT_SYNC_ENABLED_ONLY).
+  enabledOnly: true
+  # -- Regex or "firstname.lastname" to only sync human accounts matching the pattern (SHOUTOUT_SYNC_USERNAME_PATTERN).
+  usernamePattern: "firstname.lastname"
   image:
     repository: docker.io/library/busybox
     tag: "1.37"

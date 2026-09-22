@@ -101,6 +101,7 @@ export interface FetchAllUsersOptions {
   credentials?: KeycloakClientCredentials;
   pageSize?: number;
   tokenRefreshIntervalMs?: number;
+  enabled?: boolean;
 }
 
 /** Fetches a single slice of users, with retry on malformed/truncated JSON and automatic subdivision. */
@@ -110,9 +111,11 @@ async function fetchUserSlice(
   getValidToken: (forceRefresh?: boolean) => Promise<string>,
   first: number,
   count: number,
+  enabled?: boolean,
   depth = 0,
 ): Promise<KeycloakUser[]> {
-  const url = `${base}/users?first=${first}&max=${count}&briefRepresentation=true`;
+  const enabledParam = enabled !== undefined ? `&enabled=${enabled}` : "";
+  const url = `${base}/users?first=${first}&max=${count}${enabledParam}&briefRepresentation=true`;
 
   let lastError: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -158,7 +161,7 @@ async function fetchUserSlice(
       half,
       error: String(lastError),
     });
-    const firstHalf = await fetchUserSlice(fetchImpl, base, getValidToken, first, half, depth + 1);
+    const firstHalf = await fetchUserSlice(fetchImpl, base, getValidToken, first, half, enabled, depth + 1);
     // If fewer users than requested were returned, we reached the end of the realm
     if (firstHalf.length < half) {
       return firstHalf;
@@ -169,6 +172,7 @@ async function fetchUserSlice(
       getValidToken,
       first + half,
       count - half,
+      enabled,
       depth + 1,
     );
     return [...firstHalf, ...secondHalf];
@@ -189,6 +193,7 @@ export async function fetchAllUsers(
     credentials,
     pageSize = 100,
     tokenRefreshIntervalMs = 4 * 60 * 1000, // Proactively refresh after 4 minutes
+    enabled,
   } = options;
 
   const issuer = options.issuer ?? credentials?.issuer;
@@ -217,7 +222,7 @@ export async function fetchAllUsers(
   const users: KeycloakUser[] = [];
 
   for (let first = 0; ; first += pageSize) {
-    const page = await fetchUserSlice(fetchImpl, base, getValidToken, first, pageSize);
+    const page = await fetchUserSlice(fetchImpl, base, getValidToken, first, pageSize, enabled);
     users.push(...page);
     if (page.length < pageSize) return users;
   }
