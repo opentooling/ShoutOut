@@ -188,4 +188,49 @@ describe("fetchAllUsers", () => {
       vi.useRealTimers();
     }
   });
+
+  it("retries on transient JSON parse error / truncated response", async () => {
+    const fetchImpl = vi
+      .fn()
+      // First attempt returns truncated JSON
+      .mockResolvedValueOnce(new Response('[{"id":"u1", "username":"user1"', { status: 200 }))
+      // Second attempt (retry) returns complete JSON
+      .mockResolvedValueOnce(json([user(1)]));
+
+    const users = await fetchAllUsers({ issuer: "http://kc/realms/r", token: "t", pageSize: 2 }, fetchImpl);
+    expect(users.map((u) => u.id)).toEqual(["u1"]);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("subdivides batch size when response is persistently truncated", async () => {
+    const makeUsers = (start: number, count: number) =>
+      Array.from({ length: count }, (_, i) => user(start + i));
+
+    const fetchImpl = vi.fn().mockImplementation(async (url: string) => {
+      // If requested max is 10, simulate proxy truncation
+      if (url.includes("max=10")) {
+        return new Response('[{"id":"u1", "username":"user1", "attr', { status: 200 });
+      }
+      // If subdivided into max=5, simulate clean responses
+      if (url.includes("first=0&max=5")) {
+        return json(makeUsers(1, 5));
+      }
+      if (url.includes("first=5&max=5")) {
+        return json(makeUsers(6, 5));
+      }
+      if (url.includes("first=10")) {
+        return json([]);
+      }
+      return json([]);
+    });
+
+    const users = await fetchAllUsers(
+      { issuer: "http://kc/realms/r", token: "t", pageSize: 10 },
+      fetchImpl,
+    );
+    expect(users).toHaveLength(10);
+    expect(users.map((u) => u.id)).toEqual([
+      "u1", "u2", "u3", "u4", "u5", "u6", "u7", "u8", "u9", "u10",
+    ]);
+  });
 });
