@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   fetchAllUsers,
   fetchServiceToken,
+  fetchUserCount,
   KeycloakHttpError,
   keycloakAdminBase,
 } from "./keycloak-admin";
@@ -86,12 +87,31 @@ describe("fetchServiceToken", () => {
   });
 });
 
+describe("fetchUserCount", () => {
+  it("fetches the user count from Keycloak", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(json(42));
+    await expect(
+      fetchUserCount({ issuer: "http://kc/realms/r", token: "t" }, fetchImpl),
+    ).resolves.toBe(42);
+    expect(fetchImpl.mock.calls[0][0]).toBe("http://kc/admin/realms/r/users/count");
+    expect(fetchImpl.mock.calls[0][1].headers).toEqual({ authorization: "Bearer t" });
+  });
+
+  it("supports object format with count field", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(json({ count: 99 }));
+    await expect(
+      fetchUserCount({ issuer: "http://kc/realms/r", token: "t" }, fetchImpl),
+    ).resolves.toBe(99);
+  });
+});
+
 describe("fetchAllUsers", () => {
   const user = (id: number) => ({ id: `u${id}`, username: `user${id}`, enabled: true });
 
-  it("pages through all users", async () => {
+  it("queries total count first and makes exact query when reaching end of stream", async () => {
     const fetchImpl = vi
       .fn()
+      .mockResolvedValueOnce(json(5)) // total count
       .mockResolvedValueOnce(json([user(1), user(2)]))
       .mockResolvedValueOnce(json([user(3), user(4)]))
       .mockResolvedValueOnce(json([user(5)]));
@@ -101,23 +121,30 @@ describe("fetchAllUsers", () => {
     );
     expect(users.map((u) => u.id)).toEqual(["u1", "u2", "u3", "u4", "u5"]);
     expect(fetchImpl.mock.calls.map((c) => c[0])).toEqual([
+      "http://kc/admin/realms/r/users/count",
       "http://kc/admin/realms/r/users?first=0&max=2&briefRepresentation=true",
       "http://kc/admin/realms/r/users?first=2&max=2&briefRepresentation=true",
-      "http://kc/admin/realms/r/users?first=4&max=2&briefRepresentation=true",
+      "http://kc/admin/realms/r/users?first=4&max=1&briefRepresentation=true",
     ]);
     expect(fetchImpl.mock.calls[0][1].headers).toEqual({ authorization: "Bearer t" });
   });
 
-  it("uses a default page size and surfaces errors", async () => {
-    const ok = vi.fn().mockResolvedValue(json([]));
-    await expect(fetchAllUsers({ issuer: "http://kc/realms/r", token: "t" }, ok)).resolves.toEqual(
-      [],
+  it("returns an empty array immediately when count is 0", async () => {
+    const fetchImpl = vi.fn().mockResolvedValueOnce(json(0));
+    const users = await fetchAllUsers(
+      { issuer: "http://kc/realms/r", token: "t", pageSize: 100 },
+      fetchImpl,
     );
-    expect(ok.mock.calls[0][0]).toContain("max=100");
+    expect(users).toEqual([]);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0][0]).toBe("http://kc/admin/realms/r/users/count");
+  });
+
+  it("uses default page size and surfaces count errors", async () => {
     const failing = vi.fn().mockResolvedValue(json({}, 403));
     await expect(
       fetchAllUsers({ issuer: "http://kc/realms/r", token: "t" }, failing),
-    ).rejects.toThrow("Keycloak user listing failed with HTTP 403");
+    ).rejects.toThrow("Keycloak user count failed with HTTP 403");
   });
 
   it("fetches service token from credentials and refreshes on 401", async () => {
@@ -130,6 +157,8 @@ describe("fetchAllUsers", () => {
       .fn()
       // Initial token fetch
       .mockResolvedValueOnce(json({ access_token: "token-1" }))
+      // Count request
+      .mockResolvedValueOnce(json(3))
       // Page 1 succeeds
       .mockResolvedValueOnce(json([user(1), user(2)]))
       // Page 2 returns 401 (token expired)
@@ -141,18 +170,30 @@ describe("fetchAllUsers", () => {
 
     const users = await fetchAllUsers({ credentials, pageSize: 2 }, fetchImpl);
     expect(users.map((u) => u.id)).toEqual(["u1", "u2", "u3"]);
-    expect(fetchImpl).toHaveBeenCalledTimes(5);
+    expect(fetchImpl).toHaveBeenCalledTimes(6);
 
     // Call 0: Initial token request
     expect(fetchImpl.mock.calls[0][0]).toBe("http://kc/realms/r/protocol/openid-connect/token");
-    // Call 1: Page 1 with token-1
+    // Call 1: Count request with token-1
+    expect(fetchImpl.mock.calls[1][0]).toBe("http://kc/admin/realms/r/users/count");
     expect(fetchImpl.mock.calls[1][1].headers).toEqual({ authorization: "Bearer token-1" });
-    // Call 2: Page 2 with token-1 (failed with 401)
+    // Call 2: Page 1 with token-1
+    expect(fetchImpl.mock.calls[2][0]).toBe(
+      "http://kc/admin/realms/r/users?first=0&max=2&briefRepresentation=true",
+    );
     expect(fetchImpl.mock.calls[2][1].headers).toEqual({ authorization: "Bearer token-1" });
-    // Call 3: Token refresh
-    expect(fetchImpl.mock.calls[3][0]).toBe("http://kc/realms/r/protocol/openid-connect/token");
-    // Call 4: Page 2 retry with token-2
-    expect(fetchImpl.mock.calls[4][1].headers).toEqual({ authorization: "Bearer token-2" });
+    // Call 3: Page 2 with token-1 (failed with 401)
+    expect(fetchImpl.mock.calls[3][0]).toBe(
+      "http://kc/admin/realms/r/users?first=2&max=1&briefRepresentation=true",
+    );
+    expect(fetchImpl.mock.calls[3][1].headers).toEqual({ authorization: "Bearer token-1" });
+    // Call 4: Token refresh
+    expect(fetchImpl.mock.calls[4][0]).toBe("http://kc/realms/r/protocol/openid-connect/token");
+    // Call 5: Page 2 retry with token-2
+    expect(fetchImpl.mock.calls[5][0]).toBe(
+      "http://kc/admin/realms/r/users?first=2&max=1&briefRepresentation=true",
+    );
+    expect(fetchImpl.mock.calls[5][1].headers).toEqual({ authorization: "Bearer token-2" });
   });
 
   it("proactively refreshes token when tokenRefreshIntervalMs expires", async () => {
@@ -167,6 +208,8 @@ describe("fetchAllUsers", () => {
         .fn()
         // Initial token
         .mockResolvedValueOnce(json({ access_token: "token-a" }))
+        // Count request
+        .mockResolvedValueOnce(json(4))
         // Page 1
         .mockImplementationOnce(async () => {
           vi.advanceTimersByTime(5000);
@@ -175,74 +218,17 @@ describe("fetchAllUsers", () => {
         // Proactive token refresh
         .mockResolvedValueOnce(json({ access_token: "token-b" }))
         // Page 2
-        .mockResolvedValueOnce(json([]));
+        .mockResolvedValueOnce(json([user(3), user(4)]));
 
       const users = await fetchAllUsers(
         { credentials, pageSize: 2, tokenRefreshIntervalMs: 3000 },
         fetchImpl,
       );
-      expect(users.map((u) => u.id)).toEqual(["u1", "u2"]);
-      expect(fetchImpl.mock.calls[1][1].headers).toEqual({ authorization: "Bearer token-a" });
-      expect(fetchImpl.mock.calls[3][1].headers).toEqual({ authorization: "Bearer token-b" });
+      expect(users.map((u) => u.id)).toEqual(["u1", "u2", "u3", "u4"]);
+      expect(fetchImpl.mock.calls[2][1].headers).toEqual({ authorization: "Bearer token-a" });
+      expect(fetchImpl.mock.calls[4][1].headers).toEqual({ authorization: "Bearer token-b" });
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it("retries on transient JSON parse error / truncated response", async () => {
-    const fetchImpl = vi
-      .fn()
-      // First attempt returns truncated JSON
-      .mockResolvedValueOnce(new Response('[{"id":"u1", "username":"user1"', { status: 200 }))
-      // Second attempt (retry) returns complete JSON
-      .mockResolvedValueOnce(json([user(1)]));
-
-    const users = await fetchAllUsers(
-      { issuer: "http://kc/realms/r", token: "t", pageSize: 2 },
-      fetchImpl,
-    );
-    expect(users.map((u) => u.id)).toEqual(["u1"]);
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
-  });
-
-  it("subdivides batch size when response is persistently truncated", async () => {
-    const makeUsers = (start: number, count: number) =>
-      Array.from({ length: count }, (_, i) => user(start + i));
-
-    const fetchImpl = vi.fn().mockImplementation(async (url: string) => {
-      // If requested max is 10, simulate proxy truncation
-      if (url.includes("max=10")) {
-        return new Response('[{"id":"u1", "username":"user1", "attr', { status: 200 });
-      }
-      // If subdivided into max=5, simulate clean responses
-      if (url.includes("first=0&max=5")) {
-        return json(makeUsers(1, 5));
-      }
-      if (url.includes("first=5&max=5")) {
-        return json(makeUsers(6, 5));
-      }
-      if (url.includes("first=10")) {
-        return json([]);
-      }
-      return json([]);
-    });
-
-    const users = await fetchAllUsers(
-      { issuer: "http://kc/realms/r", token: "t", pageSize: 10 },
-      fetchImpl,
-    );
-    expect(users).toHaveLength(10);
-    expect(users.map((u) => u.id)).toEqual([
-      "u1",
-      "u2",
-      "u3",
-      "u4",
-      "u5",
-      "u6",
-      "u7",
-      "u8",
-      "u9",
-      "u10",
-    ]);
   });
 });

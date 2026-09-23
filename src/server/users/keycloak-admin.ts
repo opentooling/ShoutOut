@@ -1,5 +1,3 @@
-import { createLogger } from "@/lib/logger";
-
 export interface KeycloakUser {
   id: string;
   username: string;
@@ -93,7 +91,34 @@ export async function fetchServiceToken(
   return body.access_token;
 }
 
-const log = createLogger("keycloak-admin");
+/** Gets the total number of users in the realm. */
+export async function fetchUserCount(
+  { issuer, token }: { issuer: string; token: string },
+  fetchImpl: Fetch = fetch,
+): Promise<number> {
+  const base = keycloakAdminBase(issuer);
+  const response = await request(
+    fetchImpl,
+    `${base}/users/count`,
+    { headers: { authorization: `Bearer ${token}` } },
+    "Keycloak user count",
+  );
+  await expectOk(response, "Keycloak user count");
+  const data: unknown = await response.json().catch(async () => {
+    const text = await response.text();
+    return Number(text);
+  });
+  const count =
+    typeof data === "number"
+      ? data
+      : typeof data === "object" && data !== null && "count" in data
+        ? Number((data as { count: unknown }).count)
+        : Number(data);
+  if (Number.isNaN(count)) {
+    throw new Error(`Keycloak user count response was not a number: ${JSON.stringify(data)}`);
+  }
+  return count;
+}
 
 export interface FetchAllUsersOptions {
   issuer?: string;
@@ -101,98 +126,9 @@ export interface FetchAllUsersOptions {
   credentials?: KeycloakClientCredentials;
   pageSize?: number;
   tokenRefreshIntervalMs?: number;
-  enabled?: boolean;
 }
 
-/** Fetches a single slice of users, with retry on malformed/truncated JSON and automatic subdivision. */
-async function fetchUserSlice(
-  fetchImpl: Fetch,
-  base: string,
-  getValidToken: (forceRefresh?: boolean) => Promise<string>,
-  first: number,
-  count: number,
-  enabled?: boolean,
-  depth = 0,
-): Promise<KeycloakUser[]> {
-  const enabledParam = enabled !== undefined ? `&enabled=${enabled}` : "";
-  const url = `${base}/users?first=${first}&max=${count}${enabledParam}&briefRepresentation=true`;
-
-  let lastError: unknown;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    let token = await getValidToken();
-    let response = await request(
-      fetchImpl,
-      url,
-      { headers: { authorization: `Bearer ${token}` } },
-      "Keycloak user listing",
-    );
-
-    // If 401, force-refresh the service token and retry once
-    if (response.status === 401) {
-      token = await getValidToken(true);
-      response = await request(
-        fetchImpl,
-        url,
-        { headers: { authorization: `Bearer ${token}` } },
-        "Keycloak user listing",
-      );
-    }
-
-    await expectOk(response, "Keycloak user listing");
-
-    const text = await response.text();
-    try {
-      const parsed = JSON.parse(text);
-      if (!Array.isArray(parsed)) {
-        throw new Error(`Expected JSON array of users but got ${typeof parsed}`);
-      }
-      return parsed as KeycloakUser[];
-    } catch (parseError) {
-      lastError = parseError;
-    }
-  }
-
-  // If parsing failed (e.g. response truncated by proxy buffer limit), subdivide into smaller batches
-  if (count > 5 && depth < 4) {
-    const half = Math.ceil(count / 2);
-    log.warn("Keycloak user listing response was malformed or truncated; subdividing batch", {
-      first,
-      count,
-      half,
-      error: String(lastError),
-    });
-    const firstHalf = await fetchUserSlice(
-      fetchImpl,
-      base,
-      getValidToken,
-      first,
-      half,
-      enabled,
-      depth + 1,
-    );
-    // If fewer users than requested were returned, we reached the end of the realm
-    if (firstHalf.length < half) {
-      return firstHalf;
-    }
-    const secondHalf = await fetchUserSlice(
-      fetchImpl,
-      base,
-      getValidToken,
-      first + half,
-      count - half,
-      enabled,
-      depth + 1,
-    );
-    return [...firstHalf, ...secondHalf];
-  }
-
-  throw new Error(
-    `Keycloak user listing: failed to parse JSON response for range [${first}..${first + count}] (${lastError instanceof Error ? lastError.message : String(lastError)})`,
-    { cause: lastError },
-  );
-}
-
-/** Lists every user in the realm, page by page, refreshing the service token and handling truncated responses. */
+/** Lists every user in the realm, page by page, refreshing the service token as needed. */
 export async function fetchAllUsers(
   options: FetchAllUsersOptions,
   fetchImpl: Fetch = fetch,
@@ -201,7 +137,6 @@ export async function fetchAllUsers(
     credentials,
     pageSize = 100,
     tokenRefreshIntervalMs = 4 * 60 * 1000, // Proactively refresh after 4 minutes
-    enabled,
   } = options;
 
   const issuer = options.issuer ?? credentials?.issuer;
@@ -218,8 +153,8 @@ export async function fetchAllUsers(
   }
 
   let tokenIssuedAt = Date.now();
-  const getValidToken = async (forceRefresh = false): Promise<string> => {
-    if (credentials && (forceRefresh || Date.now() - tokenIssuedAt >= tokenRefreshIntervalMs)) {
+  const getOrRefreshToken = async (force = false): Promise<string> => {
+    if (credentials && (force || Date.now() - tokenIssuedAt >= tokenRefreshIntervalMs)) {
       token = await fetchServiceToken(credentials, fetchImpl);
       tokenIssuedAt = Date.now();
     }
@@ -227,11 +162,74 @@ export async function fetchAllUsers(
   };
 
   const base = keycloakAdminBase(issuer);
+
+  // 1. Query total count first
+  let countResponse = await request(
+    fetchImpl,
+    `${base}/users/count`,
+    { headers: { authorization: `Bearer ${await getOrRefreshToken()}` } },
+    "Keycloak user count",
+  );
+
+  if (countResponse.status === 401 && credentials) {
+    countResponse = await request(
+      fetchImpl,
+      `${base}/users/count?enabled=true`,
+      { headers: { authorization: `Bearer ${await getOrRefreshToken(true)}` } },
+      "Keycloak user count",
+    );
+  }
+
+  await expectOk(countResponse, "Keycloak user count");
+  const countData: unknown = await countResponse.json().catch(async () => {
+    const text = await countResponse.text();
+    return Number(text);
+  });
+  const totalCount =
+    typeof countData === "number"
+      ? countData
+      : typeof countData === "object" && countData !== null && "count" in countData
+        ? Number((countData as { count: unknown }).count)
+        : Number(countData);
+
+  if (Number.isNaN(totalCount)) {
+    throw new Error(`Keycloak user count response was not a number: ${JSON.stringify(countData)}`);
+  }
+
+  if (totalCount <= 0) {
+    return [];
+  }
+
   const users: KeycloakUser[] = [];
 
-  for (let first = 0; ; first += pageSize) {
-    const page = await fetchUserSlice(fetchImpl, base, getValidToken, first, pageSize, enabled);
+  // 2. Fetch pages, making an exact query for remaining users at the end of the stream
+  for (let first = 0; first < totalCount; first += pageSize) {
+    const count = Math.min(pageSize, totalCount - first);
+
+    let response = await request(
+      fetchImpl,
+      `${base}/users?first=${first}&max=${count}&enabled=true&briefRepresentation=true`,
+      { headers: { authorization: `Bearer ${await getOrRefreshToken()}` } },
+      "Keycloak user listing",
+    );
+
+    // If the token expired midway (HTTP 401) and we have credentials, refresh and retry once
+    if (response.status === 401 && credentials) {
+      response = await request(
+        fetchImpl,
+        `${base}/users?first=${first}&max=${count}&enabled=true&briefRepresentation=true`,
+        { headers: { authorization: `Bearer ${await getOrRefreshToken(true)}` } },
+        "Keycloak user listing",
+      );
+    }
+
+    await expectOk(response, "Keycloak user listing");
+    const page = (await response.json()) as KeycloakUser[];
     users.push(...page);
-    if (page.length < pageSize) return users;
+    if (page.length < count || users.length >= totalCount) {
+      break;
+    }
   }
+
+  return users;
 }

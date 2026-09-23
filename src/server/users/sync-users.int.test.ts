@@ -122,6 +122,7 @@ describe("syncUsers (postgres)", () => {
     const fetchImpl = vi
       .fn()
       .mockResolvedValueOnce(Response.json({ access_token: "t" }))
+      .mockResolvedValueOnce(Response.json(1))
       .mockResolvedValueOnce(
         Response.json([kc({ id: "kc-zoe", firstName: "Zoe", lastName: "Z" })]),
       );
@@ -131,6 +132,6 @@ describe("syncUsers (postgres)", () => {
       fetchImpl,
     );
     expect(result.created).toBe(1);
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
   });
 });
