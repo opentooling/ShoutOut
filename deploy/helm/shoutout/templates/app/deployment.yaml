@@ -78,6 +78,10 @@ spec:
               value: {{ .Values.config.analyticsVisibility | quote }}
             - name: SHOUTOUT_SYNC_ON_STARTUP
               value: {{ and .Values.userSync.enabled .Values.userSync.onStartup | quote }}
+            {{- if .Values.userSync.usernamePattern }}
+            - name: SHOUTOUT_SYNC_USERNAME_PATTERN
+              value: {{ .Values.userSync.usernamePattern | quote }}
+            {{- end }}
             - name: SHOUTOUT_SYNC_TOKEN
               valueFrom:
                 secretKeyRef:

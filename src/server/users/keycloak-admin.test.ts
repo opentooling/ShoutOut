@@ -231,4 +231,23 @@ describe("fetchAllUsers", () => {
       vi.useRealTimers();
     }
   });
+
+  it("filters returned users by usernamePattern regex", async () => {
+    const rawUsers = [
+      { id: "u1", username: "john.doe", enabled: true },
+      { id: "u2", username: "cbk.service", enabled: true },
+      { id: "u3", username: "admin", enabled: true },
+      { id: "u4", username: "alice.smith", enabled: true },
+    ];
+    const fetchImpl = vi.fn().mockResolvedValueOnce(json(4)).mockResolvedValueOnce(json(rawUsers));
+
+    // Regex that requires firstname.lastname and excludes usernames starting with cbk.
+    const pattern = "^(?!cbk\\.)[a-z]+\\.[a-z]+$";
+    const users = await fetchAllUsers(
+      { issuer: "http://kc/realms/r", token: "t", usernamePattern: pattern },
+      fetchImpl,
+    );
+
+    expect(users.map((u) => u.username)).toEqual(["john.doe", "alice.smith"]);
+  });
 });

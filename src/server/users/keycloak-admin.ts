@@ -130,6 +130,7 @@ export interface FetchAllUsersOptions {
   credentials?: KeycloakClientCredentials;
   pageSize?: number;
   tokenRefreshIntervalMs?: number;
+  usernamePattern?: RegExp | string;
 }
 
 /** Lists every user in the realm, page by page, refreshing the service token as needed. */
@@ -141,7 +142,15 @@ export async function fetchAllUsers(
     credentials,
     pageSize = 100,
     tokenRefreshIntervalMs = 4 * 60 * 1000, // Proactively refresh after 4 minutes
+    usernamePattern,
   } = options;
+
+  const filterRegex =
+    typeof usernamePattern === "string" ? new RegExp(usernamePattern) : usernamePattern;
+
+  if (filterRegex) {
+    log.info("Filtering users with username pattern", { pattern: filterRegex.source });
+  }
 
   const issuer = options.issuer ?? credentials?.issuer;
   if (!issuer) {
@@ -250,12 +259,14 @@ export async function fetchAllUsers(
 
     await expectOk(response, "Keycloak user listing");
     const page = (await response.json()) as KeycloakUser[];
-    users.push(...page);
+    const matching = filterRegex ? page.filter((u) => filterRegex.test(u.username)) : page;
+    users.push(...matching);
 
     log.info("Received Keycloak user page", {
       first,
       count,
       received: page.length,
+      matched: matching.length,
       totalFetched: users.length,
       expectedUsers: totalCount,
     });

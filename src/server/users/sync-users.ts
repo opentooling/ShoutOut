@@ -18,17 +18,27 @@ export interface SyncResult {
   skipped: number;
 }
 
-/** Service accounts and users without an email can't be recognised. */
-export function isSyncable(user: KeycloakUser): boolean {
-  return Boolean(user.email) && !user.username.startsWith("service-account-");
+/** Service accounts and users without an email can't be recognised. Optionally filtered by username pattern. */
+export function isSyncable(user: KeycloakUser, usernamePattern?: RegExp | string): boolean {
+  if (!user.email || user.username.startsWith("service-account-")) return false;
+  if (usernamePattern) {
+    const regex =
+      typeof usernamePattern === "string" ? new RegExp(usernamePattern) : usernamePattern;
+    if (!regex.test(user.username)) return false;
+  }
+  return true;
 }
 
-export async function syncUsers(db: Db, users: KeycloakUser[]): Promise<SyncResult> {
+export async function syncUsers(
+  db: Db,
+  users: KeycloakUser[],
+  usernamePattern?: RegExp | string,
+): Promise<SyncResult> {
   const result: SyncResult = { created: 0, updated: 0, deactivated: 0, skipped: 0 };
   const seen: string[] = [];
 
   for (const user of users) {
-    if (!isSyncable(user)) {
+    if (!isSyncable(user, usernamePattern)) {
       result.skipped++;
       continue;
     }
@@ -81,11 +91,22 @@ export function syncCredentialsFromEnv(
   };
 }
 
+export function syncUsernamePatternFromEnv(
+  env: Record<string, string | undefined> = process.env,
+): RegExp | undefined {
+  const raw = env.SHOUTOUT_SYNC_USERNAME_PATTERN;
+  if (!raw) return undefined;
+  return new RegExp(raw);
+}
+
 export async function runKeycloakSync(
   db: Db,
   credentials: KeycloakClientCredentials,
   fetchImpl: typeof fetch = fetch,
+  usernamePattern?: RegExp | string,
+  env: Record<string, string | undefined> = process.env,
 ): Promise<SyncResult> {
-  const users = await fetchAllUsers({ credentials }, fetchImpl);
-  return syncUsers(db, users);
+  const pattern = usernamePattern ?? syncUsernamePatternFromEnv(env);
+  const users = await fetchAllUsers({ credentials, usernamePattern: pattern }, fetchImpl);
+  return syncUsers(db, users, pattern);
 }

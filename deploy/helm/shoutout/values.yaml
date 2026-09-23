@@ -64,6 +64,9 @@ userSync:
   onStartup: true
   # -- CronJob schedule for regular syncs.
   schedule: "0 * * * *"
+  # -- Optional regex pattern to filter synced users by username (SHOUTOUT_SYNC_USERNAME_PATTERN).
+  # E.g. "^(?!cbk\\.)[a-zA-Z0-9._-]+\\.[a-zA-Z0-9._-]+$"
+  usernamePattern: ""
   image:
     repository: docker.io/library/busybox
     tag: "1.37"

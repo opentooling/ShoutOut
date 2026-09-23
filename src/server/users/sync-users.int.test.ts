@@ -4,7 +4,13 @@ import { useTestDb } from "../../../test/db";
 import { captureLogs } from "../../../test/logs";
 import { createUser, count, findUser, insertUser } from "../../../test/factories";
 import type { KeycloakUser } from "./keycloak-admin";
-import { isSyncable, runKeycloakSync, syncCredentialsFromEnv, syncUsers } from "./sync-users";
+import {
+  isSyncable,
+  runKeycloakSync,
+  syncCredentialsFromEnv,
+  syncUsernamePatternFromEnv,
+  syncUsers,
+} from "./sync-users";
 
 const kc = (overrides: Partial<KeycloakUser> & { id: string }): KeycloakUser => ({
   username: overrides.id,
@@ -20,6 +26,28 @@ describe("isSyncable", () => {
     expect(isSyncable(kc({ id: "a" }))).toBe(true);
     expect(isSyncable(kc({ id: "b", email: undefined }))).toBe(false);
     expect(isSyncable(kc({ id: "c", username: "service-account-shoutout-web" }))).toBe(false);
+  });
+
+  it("filters usernames by regex pattern", () => {
+    const pattern = /^(?!cbk\.)[a-z]+\.[a-z]+$/;
+    expect(isSyncable(kc({ id: "1", username: "john.doe" }), pattern)).toBe(true);
+    expect(isSyncable(kc({ id: "2", username: "cbk.bot" }), pattern)).toBe(false);
+    expect(isSyncable(kc({ id: "3", username: "admin" }), pattern)).toBe(false);
+    expect(
+      isSyncable(kc({ id: "4", username: "alice.smith" }), "^(?!cbk\\.)[a-z]+\\.[a-z]+$"),
+    ).toBe(true);
+  });
+});
+
+describe("syncUsernamePatternFromEnv", () => {
+  it("returns undefined when unset and RegExp when set", () => {
+    expect(syncUsernamePatternFromEnv({})).toBeUndefined();
+    const pattern = syncUsernamePatternFromEnv({
+      SHOUTOUT_SYNC_USERNAME_PATTERN: "^(?!cbk\\.)[a-z]+\\.[a-z]+$",
+    });
+    expect(pattern).toBeInstanceOf(RegExp);
+    expect(pattern?.test("john.doe")).toBe(true);
+    expect(pattern?.test("cbk.service")).toBe(false);
   });
 });
 
