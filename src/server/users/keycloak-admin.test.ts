@@ -122,9 +122,9 @@ describe("fetchAllUsers", () => {
     expect(users.map((u) => u.id)).toEqual(["u1", "u2", "u3", "u4", "u5"]);
     expect(fetchImpl.mock.calls.map((c) => c[0])).toEqual([
       "http://kc/admin/realms/r/users/count",
-      "http://kc/admin/realms/r/users?first=0&max=2&briefRepresentation=true",
-      "http://kc/admin/realms/r/users?first=2&max=2&briefRepresentation=true",
-      "http://kc/admin/realms/r/users?first=4&max=1&briefRepresentation=true",
+      "http://kc/admin/realms/r/users?first=0&max=2&enabled=true&briefRepresentation=true",
+      "http://kc/admin/realms/r/users?first=2&max=2&enabled=true&briefRepresentation=true",
+      "http://kc/admin/realms/r/users?first=4&max=1&enabled=true&briefRepresentation=true",
     ]);
     expect(fetchImpl.mock.calls[0][1].headers).toEqual({ authorization: "Bearer t" });
   });
@@ -179,19 +179,19 @@ describe("fetchAllUsers", () => {
     expect(fetchImpl.mock.calls[1][1].headers).toEqual({ authorization: "Bearer token-1" });
     // Call 2: Page 1 with token-1
     expect(fetchImpl.mock.calls[2][0]).toBe(
-      "http://kc/admin/realms/r/users?first=0&max=2&briefRepresentation=true",
+      "http://kc/admin/realms/r/users?first=0&max=2&enabled=true&briefRepresentation=true",
     );
     expect(fetchImpl.mock.calls[2][1].headers).toEqual({ authorization: "Bearer token-1" });
     // Call 3: Page 2 with token-1 (failed with 401)
     expect(fetchImpl.mock.calls[3][0]).toBe(
-      "http://kc/admin/realms/r/users?first=2&max=1&briefRepresentation=true",
+      "http://kc/admin/realms/r/users?first=2&max=1&enabled=true&briefRepresentation=true",
     );
     expect(fetchImpl.mock.calls[3][1].headers).toEqual({ authorization: "Bearer token-1" });
     // Call 4: Token refresh
     expect(fetchImpl.mock.calls[4][0]).toBe("http://kc/realms/r/protocol/openid-connect/token");
     // Call 5: Page 2 retry with token-2
     expect(fetchImpl.mock.calls[5][0]).toBe(
-      "http://kc/admin/realms/r/users?first=2&max=1&briefRepresentation=true",
+      "http://kc/admin/realms/r/users?first=2&max=1&enabled=true&briefRepresentation=true",
     );
     expect(fetchImpl.mock.calls[5][1].headers).toEqual({ authorization: "Bearer token-2" });
   });
