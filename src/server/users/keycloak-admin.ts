@@ -1,3 +1,5 @@
+import { createLogger } from "@/lib/logger";
+
 export interface KeycloakUser {
   id: string;
   username: string;
@@ -6,6 +8,8 @@ export interface KeycloakUser {
   lastName?: string;
   enabled: boolean;
 }
+
+const log = createLogger("keycloak-admin");
 
 export interface KeycloakClientCredentials {
   issuer: string;
@@ -164,17 +168,24 @@ export async function fetchAllUsers(
   const base = keycloakAdminBase(issuer);
 
   // 1. Query total count first
+  const countUrl = `${base}/users/count`;
+  log.info("Requesting Keycloak user count", { url: countUrl });
+
   let countResponse = await request(
     fetchImpl,
-    `${base}/users/count`,
+    countUrl,
     { headers: { authorization: `Bearer ${await getOrRefreshToken()}` } },
     "Keycloak user count",
   );
 
   if (countResponse.status === 401 && credentials) {
+    const retryCountUrl = `${base}/users/count?enabled=true`;
+    log.info("Keycloak token expired during count; refreshing token and retrying", {
+      url: retryCountUrl,
+    });
     countResponse = await request(
       fetchImpl,
-      `${base}/users/count?enabled=true`,
+      retryCountUrl,
       { headers: { authorization: `Bearer ${await getOrRefreshToken(true)}` } },
       "Keycloak user count",
     );
@@ -196,7 +207,10 @@ export async function fetchAllUsers(
     throw new Error(`Keycloak user count response was not a number: ${JSON.stringify(countData)}`);
   }
 
+  log.info("Keycloak user count determined", { expectedUsers: totalCount });
+
   if (totalCount <= 0) {
+    log.info("No Keycloak users to fetch", { expectedUsers: totalCount });
     return [];
   }
 
@@ -205,19 +219,31 @@ export async function fetchAllUsers(
   // 2. Fetch pages, making an exact query for remaining users at the end of the stream
   for (let first = 0; first < totalCount; first += pageSize) {
     const count = Math.min(pageSize, totalCount - first);
+    const url = `${base}/users?first=${first}&max=${count}&enabled=true&briefRepresentation=true`;
+
+    log.info("Requesting Keycloak user page", {
+      url,
+      first,
+      count,
+      expectedUsers: totalCount,
+    });
 
     let response = await request(
       fetchImpl,
-      `${base}/users?first=${first}&max=${count}&enabled=true&briefRepresentation=true`,
+      url,
       { headers: { authorization: `Bearer ${await getOrRefreshToken()}` } },
       "Keycloak user listing",
     );
 
     // If the token expired midway (HTTP 401) and we have credentials, refresh and retry once
     if (response.status === 401 && credentials) {
+      log.info("Keycloak token expired during user listing; refreshing token and retrying", {
+        url,
+        first,
+      });
       response = await request(
         fetchImpl,
-        `${base}/users?first=${first}&max=${count}&enabled=true&briefRepresentation=true`,
+        url,
         { headers: { authorization: `Bearer ${await getOrRefreshToken(true)}` } },
         "Keycloak user listing",
       );
@@ -226,10 +252,24 @@ export async function fetchAllUsers(
     await expectOk(response, "Keycloak user listing");
     const page = (await response.json()) as KeycloakUser[];
     users.push(...page);
+
+    log.info("Received Keycloak user page", {
+      first,
+      count,
+      received: page.length,
+      totalFetched: users.length,
+      expectedUsers: totalCount,
+    });
+
     if (page.length < count || users.length >= totalCount) {
       break;
     }
   }
+
+  log.info("Completed fetching Keycloak users", {
+    totalFetched: users.length,
+    expectedUsers: totalCount,
+  });
 
   return users;
 }
