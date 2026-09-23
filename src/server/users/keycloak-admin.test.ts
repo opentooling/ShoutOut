@@ -121,7 +121,7 @@ describe("fetchAllUsers", () => {
     );
     expect(users.map((u) => u.id)).toEqual(["u1", "u2", "u3", "u4", "u5"]);
     expect(fetchImpl.mock.calls.map((c) => c[0])).toEqual([
-      "http://kc/admin/realms/r/users/count",
+      "http://kc/admin/realms/r/users/count?enabled=true",
       "http://kc/admin/realms/r/users?first=0&max=2&enabled=true&briefRepresentation=true",
       "http://kc/admin/realms/r/users?first=2&max=2&enabled=true&briefRepresentation=true",
       "http://kc/admin/realms/r/users?first=4&max=1&enabled=true&briefRepresentation=true",
@@ -137,7 +137,7 @@ describe("fetchAllUsers", () => {
     );
     expect(users).toEqual([]);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
-    expect(fetchImpl.mock.calls[0][0]).toBe("http://kc/admin/realms/r/users/count");
+    expect(fetchImpl.mock.calls[0][0]).toBe("http://kc/admin/realms/r/users/count?enabled=true");
   });
 
   it("uses default page size and surfaces count errors", async () => {
@@ -175,7 +175,7 @@ describe("fetchAllUsers", () => {
     // Call 0: Initial token request
     expect(fetchImpl.mock.calls[0][0]).toBe("http://kc/realms/r/protocol/openid-connect/token");
     // Call 1: Count request with token-1
-    expect(fetchImpl.mock.calls[1][0]).toBe("http://kc/admin/realms/r/users/count");
+    expect(fetchImpl.mock.calls[1][0]).toBe("http://kc/admin/realms/r/users/count?enabled=true");
     expect(fetchImpl.mock.calls[1][1].headers).toEqual({ authorization: "Bearer token-1" });
     // Call 2: Page 1 with token-1
     expect(fetchImpl.mock.calls[2][0]).toBe(

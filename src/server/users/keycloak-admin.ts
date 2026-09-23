@@ -168,7 +168,7 @@ export async function fetchAllUsers(
   const base = keycloakAdminBase(issuer);
 
   // 1. Query total count first
-  const countUrl = `${base}/users/count`;
+  const countUrl = `${base}/users/count?enabled=true`;
   log.info("Requesting Keycloak user count", { url: countUrl });
 
   let countResponse = await request(
@@ -179,13 +179,12 @@ export async function fetchAllUsers(
   );
 
   if (countResponse.status === 401 && credentials) {
-    const retryCountUrl = `${base}/users/count?enabled=true`;
     log.info("Keycloak token expired during count; refreshing token and retrying", {
-      url: retryCountUrl,
+      url: countUrl,
     });
     countResponse = await request(
       fetchImpl,
-      retryCountUrl,
+      countUrl,
       { headers: { authorization: `Bearer ${await getOrRefreshToken(true)}` } },
       "Keycloak user count",
     );
