@@ -53,5 +53,13 @@
   },
   "engines": {
     "node": ">=22.12"
+  },
+  "overrides": {
+    "next-auth": {
+      "nodemailer": "$nodemailer"
+    },
+    "@auth/core": {
+      "nodemailer": "$nodemailer"
+    }
   }
 }
