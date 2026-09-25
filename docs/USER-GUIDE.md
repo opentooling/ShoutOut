@@ -19,6 +19,7 @@ Also available in the app at **/guide**.
 - [The leaderboard](#leaderboard)
 - [Reporting a shoutout](#reporting)
 - [Light and dark mode](#light-and-dark)
+- [Email notifications](#email-notifications)
 - [Moderation](#admin-moderation) (admins)
 - [Cards and values](#admin-cards-and-values) (admins)
 - [Exports and the audit log](#admin-export) (admins)
@@ -165,6 +166,21 @@ If a shoutout is unkind, inappropriate or spam, report it. It is hidden from eve
 Use the switch at the top right to choose light, dark, or match your device. On a phone it's on your profile page. ShoutOut remembers your choice.
 
 ![The feed in dark mode](../public/guide/dark.jpg)
+
+<a id="email-notifications"></a>
+
+### Email notifications
+
+If your company has turned email on, ShoutOut emails you when someone sends you a shoutout. Once a quarter, about two weeks before the budget resets, it also reminds you if you still have shoutouts left. Both are on unless you turn them off.
+
+1. Choose your name or picture at the top right to open **your profile**.
+2. Under **Email me**, untick the emails you don't want.
+3. Choose **Save email settings**.
+
+- Every email has a link straight to these settings.
+- An email about a new shoutout arrives a couple of minutes after it's sent, so a quick edit by the sender is included.
+
+![Your profile with the Email me settings: emails about shoutouts you receive and the budget reminder](../public/guide/email-settings.jpg)
 
 ## For admins
 

@@ -1,14 +1,15 @@
 /**
  * Captures the user guide screenshots into public/guide/ and records their
  * sizes in src/content/guide-screenshots.json. Run against a deployment with
- * demo data (deploy/local/seed-demo.sh):
+ * demo data (deploy/local/seed-demo.sh) and email turned on:
  *
  *   npm run guide:screenshots
+ *   npx playwright test -c playwright.guide.config.ts --grep "email settings" && npm run guide:docs
  *
  * It sends, reports and removes a couple of shoutouts to show those screens,
  * and cleans up after itself (deleting within 24 hours refunds the budget).
  */
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { choose, signInAs } from "../helpers";
@@ -93,7 +94,10 @@ async function fillShoutout(page: Page, message: string) {
 }
 
 test.afterAll(() => {
-  const sorted = Object.fromEntries(Object.entries(sizes).sort(([a], [b]) => a.localeCompare(b)));
+  // Merge, so capturing some screens (--grep) keeps the others' sizes.
+  const existing = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, "utf8")) : {};
+  const merged = { ...existing, ...sizes };
+  const sorted = Object.fromEntries(Object.entries(merged).sort(([a], [b]) => a.localeCompare(b)));
   writeFileSync(MANIFEST, `${JSON.stringify(sorted, null, 2)}\n`);
 });
 
@@ -162,6 +166,19 @@ test("everyday screens", async ({ page }) => {
   await page.goto("/");
   await shot(page, "dark.jpg");
   await setTheme(page, "light");
+});
+
+test("email settings", async ({ page }) => {
+  // Needs email turned on (deploy/local/values-local.yaml does).
+  await signInAs(page, "bob");
+  await setTheme(page, "light");
+  await page.getByRole("link", { name: "Your profile" }).click();
+  await expect(page.getByRole("heading", { name: "Email me" })).toBeVisible();
+  await shot(
+    page,
+    "email-settings.jpg",
+    page.locator("section", { has: page.locator("#email-settings") }),
+  );
 });
 
 test("admin screens", async ({ browser }) => {

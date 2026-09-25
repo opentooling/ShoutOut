@@ -211,6 +211,26 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     },
   },
   {
+    id: "email-notifications",
+    title: "Email notifications",
+    audience: "everyone",
+    intro:
+      "If your company has turned email on, ShoutOut emails you when someone sends you a shoutout. Once a quarter, about two weeks before the budget resets, it also reminds you if you still have shoutouts left. Both are on unless you turn them off.",
+    steps: [
+      "Choose your name or picture at the top right to open **your profile**.",
+      "Under **Email me**, untick the emails you don't want.",
+      "Choose **Save email settings**.",
+    ],
+    tips: [
+      "Every email has a link straight to these settings.",
+      "An email about a new shoutout arrives a couple of minutes after it's sent, so a quick edit by the sender is included.",
+    ],
+    screenshot: {
+      file: "email-settings.jpg",
+      alt: "Your profile with the Email me settings: emails about shoutouts you receive and the budget reminder",
+    },
+  },
+  {
     id: "admin-moderation",
     title: "Moderation",
     audience: "admins",
