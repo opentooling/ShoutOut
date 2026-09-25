@@ -129,3 +129,4 @@ helm test "$RELEASE" -n "$NAMESPACE"
 kubectl -n "$NAMESPACE" get pods
 log "ShoutOut:  http://shoutout.localtest.me"
 log "Keycloak:  http://auth.localtest.me  (demo users: alice[admin], bob, carol... password: shoutout)"
+log "Mailpit:   http://mail.localtest.me  (emails the app sends)"

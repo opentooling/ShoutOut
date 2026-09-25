@@ -38,6 +38,7 @@ extraObjects: []
 # Shared secrets. Leave empty to auto-generate on install; generated values are
 # kept on upgrade. Or point `existingSecret` at a secret with the same keys:
 #   auth-secret, keycloak-client-secret, postgres-password, keycloak-admin-password, sync-token
+# and, only if your SMTP relay needs a sign-in, smtp-password.
 secrets:
   existingSecret: ""
   authSecret: ""
@@ -45,6 +46,8 @@ secrets:
   postgresPassword: ""
   keycloakAdminPassword: ""
   syncToken: ""
+  # -- Password for notifications.email.smtp.username. Never generated; leave empty for relays without sign-in.
+  smtpPassword: ""
 
 # ShoutOut behaviour (passed to the app as environment variables).
 config:
@@ -55,6 +58,37 @@ config:
   # -- Who can open the analytics dashboard: "admins" or "everyone" (SHOUTOUT_ANALYTICS_VISIBILITY).
   # The "not recognised recently" list is always admin-only.
   analyticsVisibility: admins
+
+# Email notifications, sent through your SMTP relay. People get an email when
+# someone sends them a shoutout, and a reminder before their unused shoutouts
+# expire. Both are on for everyone by default; each person can turn them off on
+# their profile page. Most internal relays accept mail from allowed networks
+# without a sign-in: ask your mail team to allow the cluster's outgoing IPs and
+# the `from` address.
+notifications:
+  email:
+    enabled: false
+    # -- Sender address; the relay must accept it (SMTP_FROM).
+    from: "ShoutOut <shoutout@example.com>"
+    smtp:
+      # -- Relay host name (SMTP_HOST). Required when email is enabled.
+      host: ""
+      # -- Relay port (SMTP_PORT): usually 25 for internal relays, 587 with sign-in, 465 for implicit TLS.
+      port: 25
+      # -- auto | starttls | tls | none (SMTP_TLS). auto: TLS from the start on port 465,
+      # otherwise STARTTLS when the relay offers it. starttls: require STARTTLS.
+      # tls: TLS from the start. none: never use TLS (only for relays whose certificate
+      # can't be verified; prefer app.extraCaCerts).
+      tls: auto
+      # -- Only for relays that need a sign-in (SMTP_USER); the password goes in the
+      # secret as smtp-password (secrets.smtpPassword).
+      username: ""
+      # -- Host name for the SMTP greeting (SMTP_EHLO_NAME), for relays that reject the pod's name.
+      ehloName: ""
+    # -- Seconds to wait before emailing about a new shoutout, so quick edits and deletes are picked up.
+    delaySeconds: 120
+    # -- Days before the quarterly budget resets to send the reminder (at 08:00 UTC); 0 turns reminders off.
+    reminderDaysBeforeReset: 14
 
 # Sync people from Keycloak so everyone can be recognised before they first sign in.
 # The Keycloak client's service account needs the realm-management "view-users" role.

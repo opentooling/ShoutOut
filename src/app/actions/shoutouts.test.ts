@@ -78,9 +78,17 @@ describe("shoutout actions", () => {
           message: "Thanks!",
           visibility: "PRIVATE",
         },
-        expect.objectContaining({ quarterlyBudget: 20, maxRecipients: 2 }),
+        expect.objectContaining({ quarterlyBudget: 20, maxRecipients: 2, emailDelayMs: null }),
       );
       expect(revalidatePath).toHaveBeenCalledWith("/");
+    });
+
+    it("queues emails to the recipients when email is set up", async () => {
+      vi.stubEnv("SMTP_HOST", "relay.example.com");
+      vi.stubEnv("SMTP_FROM", "ShoutOut <shoutout@example.com>");
+      vi.stubEnv("SHOUTOUT_EMAIL_DELAY_SECONDS", "30");
+      await expect(sendShoutoutAction(idle, form(validSend))).rejects.toThrow("NEXT_REDIRECT");
+      expect(sendShoutout.mock.calls[0][3]).toMatchObject({ emailDelayMs: 30_000 });
     });
 
     it("returns field errors for invalid input, using the recipient limit from config", async () => {

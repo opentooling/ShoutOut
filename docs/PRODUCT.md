@@ -6,17 +6,17 @@ gifts — recognition only.
 
 ## Decisions
 
-| Area          | Decision                                                                                                                  |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Identity      | Keycloak (OIDC). Roles `shoutout-user`, `shoutout-admin`.                                                                 |
-| People        | All Keycloak users are synced so anyone can be recognised, even before first login. No teams.                             |
-| Recipients    | One or more individuals per shoutout. No self-shoutouts.                                                                  |
-| Budget        | 20 per person per quarter (admin-configurable). Each recipient consumes one. Calendar quarters, no rollover.              |
-| Editing       | Sender can edit or delete within 24h; deleting refunds the budget.                                                        |
-| Visibility    | Public by default; private = sender + recipients only. Admins see a private shoutout only if someone reports it.          |
-| Leaderboards  | Top recipients, senders and values by week/month/quarter. Count all shoutouts (private ones as numbers only). No opt-out. |
-| Notifications | None in v1.                                                                                                               |
-| Branding      | Warm & friendly: sunny yellow + soft teal, rounded type, illustrated cards, light and dark mode.                          |
+| Area          | Decision                                                                                                                                        |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identity      | Keycloak (OIDC). Roles `shoutout-user`, `shoutout-admin`.                                                                                       |
+| People        | All Keycloak users are synced so anyone can be recognised, even before first login. No teams.                                                   |
+| Recipients    | One or more individuals per shoutout. No self-shoutouts.                                                                                        |
+| Budget        | 20 per person per quarter (admin-configurable). Each recipient consumes one. Calendar quarters, no rollover.                                    |
+| Editing       | Sender can edit or delete within 24h; deleting refunds the budget.                                                                              |
+| Visibility    | Public by default; private = sender + recipients only. Admins see a private shoutout only if someone reports it.                                |
+| Leaderboards  | Top recipients, senders and values by week/month/quarter. Count all shoutouts (private ones as numbers only). No opt-out.                       |
+| Notifications | Email via the company SMTP relay: on receiving a shoutout, and a reminder before unused budget expires. On by default; each person can opt out. |
+| Branding      | Warm & friendly: sunny yellow + soft teal, rounded type, illustrated cards, light and dark mode.                                                |
 
 ## Features
 

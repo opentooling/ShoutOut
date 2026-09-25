@@ -118,6 +118,22 @@ Call with (dict "ctx" $ "key" "auth-secret" "value" .Values.secrets.authSecret)
 {{- if and .Values.app.extraCaCerts.configMap .Values.app.extraCaCerts.secret }}
 {{- fail "app.extraCaCerts: set configMap or secret, not both" }}
 {{- end }}
+{{- with .Values.notifications.email }}
+{{- if .enabled }}
+{{- if not .smtp.host }}
+{{- fail "notifications.email.smtp.host is required when notifications.email.enabled is true" }}
+{{- end }}
+{{- if not .from }}
+{{- fail "notifications.email.from is required when notifications.email.enabled is true" }}
+{{- end }}
+{{- if not (has .smtp.tls (list "auto" "starttls" "tls" "none")) }}
+{{- fail (printf "notifications.email.smtp.tls must be auto, starttls, tls or none, got %q" .smtp.tls) }}
+{{- end }}
+{{- if or (lt (int .reminderDaysBeforeReset) 0) (gt (int .reminderDaysBeforeReset) 60) }}
+{{- fail "notifications.email.reminderDaysBeforeReset must be from 0 to 60" }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- end }}
 
 {{/*

@@ -7,6 +7,7 @@ import { loadConfig } from "@/lib/config";
 import { getDb } from "@/lib/db";
 import { reportSchema, reportShoutout } from "@/server/admin/moderation";
 import { DomainError } from "@/server/errors";
+import { shoutoutEmailDelayMs } from "@/server/notifications/email-config";
 import { deleteShoutout, updateShoutout } from "@/server/shoutouts/manage";
 import { sendShoutout } from "@/server/shoutouts/send";
 import { editShoutoutSchema, fieldErrors, sendShoutoutSchema } from "@/server/shoutouts/validation";
@@ -54,7 +55,10 @@ export async function sendShoutoutAction(_prev: FormState, formData: FormData): 
     return { status: "error", message: INVALID, fieldErrors: fieldErrors(parsed.error) };
   }
   try {
-    await sendShoutout(getDb(), userId, parsed.data, config);
+    await sendShoutout(getDb(), userId, parsed.data, {
+      ...config,
+      emailDelayMs: shoutoutEmailDelayMs(),
+    });
   } catch (error) {
     return domainFailure(error);
   }

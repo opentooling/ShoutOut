@@ -70,6 +70,20 @@ app:
   # extraCaCerts:
   #   configMap: corp-ca
 
+# Email notifications through the company SMTP relay (docs/EMAIL-NOTIFICATIONS.md).
+# People are emailed when they receive a shoutout, and reminded two weeks before
+# unused shoutouts expire; each person can turn either off on their profile.
+notifications:
+  email:
+    enabled: true
+    from: "ShoutOut <shoutout@example.com>"
+    smtp:
+      host: smtp-relay.example.com
+      port: 25
+      tls: auto
+      # For a relay that needs a sign-in, also add smtp-password to the secret:
+      # username: svc-shoutout
+
 # Keep the people list in step with Keycloak (also runs when the app starts).
 userSync:
   enabled: true

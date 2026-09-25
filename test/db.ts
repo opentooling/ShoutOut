@@ -11,7 +11,8 @@ export function useTestDb(): Db {
 
   beforeEach(async () => {
     await db.execute(sql`
-      TRUNCATE users, shoutouts, shoutout_recipients, reactions, comments, reports, audit_logs
+      TRUNCATE users, shoutouts, shoutout_recipients, reactions, comments, reports, audit_logs,
+        notification_outbox
       RESTART IDENTITY CASCADE`);
     // Restore the seeded catalogue exactly as the migrations left it.
     await db.execute(sql`DELETE FROM cards WHERE id NOT LIKE 'card\_%'`);

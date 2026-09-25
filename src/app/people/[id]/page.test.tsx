@@ -23,6 +23,9 @@ vi.mock("@/lib/theme-server", () => ({ getThemePreference: async () => "light" }
 vi.mock("@/server/users/profile", () => ({ getProfile, listProfileShoutouts }));
 vi.mock("@/components/layout/app-header", () => ({ AppHeader: () => <header /> }));
 vi.mock("@/components/shoutouts/feed-list", () => ({ FeedList }));
+const getEmailPreferences = vi.fn();
+vi.mock("@/server/notifications/preferences", () => ({ getEmailPreferences }));
+vi.mock("@/app/actions/notifications", () => ({ updateEmailPreferencesAction: vi.fn() }));
 
 const { default: ProfilePage, metadata } = await import("./page");
 
@@ -49,6 +52,7 @@ describe("ProfilePage", () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it("redirects anonymous visitors and 404s unknown people", async () => {
@@ -110,6 +114,8 @@ describe("ProfilePage", () => {
     expect(screen.getByRole("heading", { name: /Bob Baker\s*\(you\)/ })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Recognise/ })).not.toBeInTheDocument();
     expect(screen.getByRole("radiogroup", { name: "Theme" })).toBeInTheDocument();
+    // Email is off in this environment, so there are no email settings.
+    expect(screen.queryByRole("heading", { name: "Email me" })).not.toBeInTheDocument();
     expect(screen.queryByText("Recognised most for")).not.toBeInTheDocument();
     expect(FeedList.mock.calls[0][0]).toMatchObject({
       viewerName: "bob@x",
@@ -118,6 +124,28 @@ describe("ProfilePage", () => {
     });
     render(await ProfilePage(props("u2", { tab: "sent" })));
     expect(FeedList.mock.calls[1][0].emptyText).toBe("You haven't sent any shoutouts yet.");
+  });
+
+  it("shows your email settings when email is set up", async () => {
+    vi.stubEnv("SMTP_HOST", "relay.example.com");
+    vi.stubEnv("SMTP_FROM", "shoutout@example.com");
+    auth.mockResolvedValue({ user: { id: "u2", email: "bob@x", roles: [] } });
+    getProfile.mockResolvedValue({ ...bobProfile, isSelf: true });
+    getEmailPreferences.mockResolvedValue({ onShoutout: true, budgetReminder: false });
+    const { container } = render(await ProfilePage(props("u2")));
+    expect(screen.getByRole("heading", { name: "Email me" })).toBeInTheDocument();
+    expect(container.querySelector("#email-settings")).not.toBeNull();
+    expect(screen.getByRole("checkbox", { name: /someone sends me a shoutout/ })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: /before my shoutouts expire/ })).not.toBeChecked();
+    expect(getEmailPreferences).toHaveBeenCalledWith({}, "u2");
+  });
+
+  it("never shows email settings on someone else's profile", async () => {
+    vi.stubEnv("SMTP_HOST", "relay.example.com");
+    vi.stubEnv("SMTP_FROM", "shoutout@example.com");
+    render(await ProfilePage(props("u2")));
+    expect(screen.queryByRole("heading", { name: "Email me" })).not.toBeInTheDocument();
+    expect(getEmailPreferences).not.toHaveBeenCalled();
   });
 
   it("marks inactive people and can't recognise them", async () => {

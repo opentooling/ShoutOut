@@ -2,6 +2,7 @@ import type { AppConfig } from "@/lib/config";
 import type { Db } from "@/lib/db";
 import { sql } from "@/lib/sql";
 import { DomainError } from "../errors";
+import { enqueueShoutoutEmails } from "../notifications/outbox";
 import { getBudget } from "./budget";
 import { SHOUTOUT_COLUMNS, type ShoutoutRecord } from "./record";
 import type { SendShoutoutInput } from "./validation";
@@ -10,7 +11,10 @@ export async function sendShoutout(
   db: Db,
   senderId: string,
   input: SendShoutoutInput,
-  config: Pick<AppConfig, "quarterlyBudget">,
+  config: Pick<AppConfig, "quarterlyBudget"> & {
+    /** Queue emails to the recipients this long after sending; null or absent when email is off. */
+    emailDelayMs?: number | null;
+  },
   now = new Date(),
 ): Promise<ShoutoutRecord> {
   const recipientIds = [...new Set(input.recipientIds)];
@@ -61,6 +65,14 @@ export async function sendShoutout(
     await tx.execute(sql`
       INSERT INTO shoutout_recipients (shoutout_id, user_id)
       SELECT ${shoutout.id}, unnest(${recipientIds}::text[])`);
+    if (config.emailDelayMs != null) {
+      await enqueueShoutoutEmails(
+        tx,
+        shoutout.id,
+        recipientIds,
+        new Date(now.getTime() + config.emailDelayMs),
+      );
+    }
     return shoutout;
   });
 }

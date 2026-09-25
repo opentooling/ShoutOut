@@ -3,7 +3,9 @@ import { captureLogs } from "../test/logs";
 
 const startupSync = vi.fn().mockResolvedValue(true);
 const checkAuthSetup = vi.fn().mockResolvedValue(true);
+const startEmailNotifications = vi.fn().mockResolvedValue(null);
 vi.mock("./server/users/startup-sync", () => ({ startupSync }));
+vi.mock("./server/notifications/worker", () => ({ startEmailNotifications }));
 vi.mock("./server/auth/diagnostics", () => ({ checkAuthSetup }));
 
 const { register, onRequestError } = await import("./instrumentation");
@@ -14,11 +16,12 @@ describe("register", () => {
     vi.clearAllMocks();
   });
 
-  it("checks the auth setup and starts the user sync on the Node.js runtime", async () => {
+  it("checks the auth setup and starts the user sync and email sender on the Node.js runtime", async () => {
     vi.stubEnv("NEXT_RUNTIME", "nodejs");
     await register();
     expect(checkAuthSetup).toHaveBeenCalledOnce();
     expect(startupSync).toHaveBeenCalledOnce();
+    expect(startEmailNotifications).toHaveBeenCalledOnce();
   });
 
   it("skips other runtimes", async () => {
@@ -26,6 +29,7 @@ describe("register", () => {
     await register();
     expect(checkAuthSetup).not.toHaveBeenCalled();
     expect(startupSync).not.toHaveBeenCalled();
+    expect(startEmailNotifications).not.toHaveBeenCalled();
   });
 });
 

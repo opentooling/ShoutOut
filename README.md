@@ -73,10 +73,11 @@ loads it into the cluster, installs the Helm chart and runs `helm test`.
 Keycloak only imports the realm on first start; after changing realm settings run
 `RESET_KEYCLOAK_REALM=1 deploy/local/deploy.sh` to re-import it (local only).
 
-| URL                          | What                        |
-| ---------------------------- | --------------------------- |
-| http://shoutout.localtest.me | ShoutOut                    |
-| http://auth.localtest.me     | Keycloak (realm `shoutout`) |
+| URL                          | What                          |
+| ---------------------------- | ----------------------------- |
+| http://shoutout.localtest.me | ShoutOut                      |
+| http://auth.localtest.me     | Keycloak (realm `shoutout`)   |
+| http://mail.localtest.me     | Mailpit: emails the app sends |
 
 Optional demo data (about six months of shoutouts, so leaderboards and analytics have something to show):
 
@@ -128,18 +129,21 @@ Admins get an **Admin** area:
 
 ## Configuration
 
-| Env var                                    | Helm value                               | Default          | Meaning                                                                                  |
-| ------------------------------------------ | ---------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------- |
-| `SHOUTOUT_QUARTERLY_BUDGET`                | `config.quarterlyBudget`                 | `20`             | Shoutouts per person per calendar quarter (each recipient uses one)                      |
-| `SHOUTOUT_MAX_RECIPIENTS`                  | `config.maxRecipients`                   | `5`              | Most people in one shoutout                                                              |
-| `SHOUTOUT_SYNC_ON_STARTUP`                 | `userSync.onStartup`                     | `true`           | Sync people from Keycloak when the app starts                                            |
-| –                                          | `userSync.schedule`                      | `0 * * * *`      | CronJob schedule for the Keycloak people sync                                            |
-| `SHOUTOUT_SYNC_TOKEN`                      | `secrets.syncToken`                      | generated        | Bearer token for `POST /api/internal/sync-users`                                         |
-| `AUTH_KEYCLOAK_ISSUER` / `_ID` / `_SECRET` | `auth.*`, `secrets.keycloakClientSecret` | bundled Keycloak | OIDC client; its service account needs realm-management `view-users` for the people sync |
-| `SHOUTOUT_ADMIN_ROLE`                      | `auth.adminRole`                         | `admin`          | Client role that grants admin                                                            |
-| `SHOUTOUT_ROLES_CLIENT_ID`                 | `auth.rolesClientId`                     | `auth.clientId`  | Client whose roles are checked                                                           |
-| `LOG_LEVEL` / `LOG_FORMAT`                 | `logging.level` / `logging.format`       | `info` / `json`  | Log threshold (`debug` adds Auth.js OIDC traffic, secrets redacted); `text` for humans   |
-| `NODE_EXTRA_CA_CERTS`                      | `app.extraCaCerts`                       | –                | Extra trusted CAs (ConfigMap or Secret with a PEM bundle), e.g. a company CA             |
+| Env var                                    | Helm value                                    | Default             | Meaning                                                                                            |
+| ------------------------------------------ | --------------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------- |
+| `SHOUTOUT_QUARTERLY_BUDGET`                | `config.quarterlyBudget`                      | `20`                | Shoutouts per person per calendar quarter (each recipient uses one)                                |
+| `SHOUTOUT_MAX_RECIPIENTS`                  | `config.maxRecipients`                        | `5`                 | Most people in one shoutout                                                                        |
+| `SHOUTOUT_SYNC_ON_STARTUP`                 | `userSync.onStartup`                          | `true`              | Sync people from Keycloak when the app starts                                                      |
+| –                                          | `userSync.schedule`                           | `0 * * * *`         | CronJob schedule for the Keycloak people sync                                                      |
+| `SHOUTOUT_SYNC_TOKEN`                      | `secrets.syncToken`                           | generated           | Bearer token for `POST /api/internal/sync-users`                                                   |
+| `AUTH_KEYCLOAK_ISSUER` / `_ID` / `_SECRET` | `auth.*`, `secrets.keycloakClientSecret`      | bundled Keycloak    | OIDC client; its service account needs realm-management `view-users` for the people sync           |
+| `SHOUTOUT_ADMIN_ROLE`                      | `auth.adminRole`                              | `admin`             | Client role that grants admin                                                                      |
+| `SHOUTOUT_ROLES_CLIENT_ID`                 | `auth.rolesClientId`                          | `auth.clientId`     | Client whose roles are checked                                                                     |
+| `LOG_LEVEL` / `LOG_FORMAT`                 | `logging.level` / `logging.format`            | `info` / `json`     | Log threshold (`debug` adds Auth.js OIDC traffic, secrets redacted); `text` for humans             |
+| `NODE_EXTRA_CA_CERTS`                      | `app.extraCaCerts`                            | –                   | Extra trusted CAs (ConfigMap or Secret with a PEM bundle), e.g. a company CA                       |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_TLS`     | `notifications.email.smtp.*`                  | off / `25` / `auto` | SMTP relay for email notifications; see [docs/EMAIL-NOTIFICATIONS.md](docs/EMAIL-NOTIFICATIONS.md) |
+| `SMTP_FROM`                                | `notifications.email.from`                    | –                   | Sender address                                                                                     |
+| `SHOUTOUT_BUDGET_REMINDER_DAYS`            | `notifications.email.reminderDaysBeforeReset` | `14`                | Days before the quarterly reset to remind people with shoutouts left; `0` turns it off             |
 
 Example: `helm upgrade shoutout deploy/helm/shoutout --reuse-values --set config.quarterlyBudget=30`
 

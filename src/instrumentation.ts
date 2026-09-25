@@ -4,8 +4,10 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { checkAuthSetup } = await import("./server/auth/diagnostics");
     const { startupSync } = await import("./server/users/startup-sync");
+    const { startEmailNotifications } = await import("./server/notifications/worker");
     void checkAuthSetup();
     void startupSync();
+    void startEmailNotifications();
   }
 }
 

@@ -95,6 +95,36 @@ spec:
               value: {{ .Values.logging.level | quote }}
             - name: LOG_FORMAT
               value: {{ .Values.logging.format | quote }}
+            {{- with .Values.notifications.email }}
+            {{- if .enabled }}
+            - name: SMTP_HOST
+              value: {{ .smtp.host | quote }}
+            - name: SMTP_PORT
+              value: {{ .smtp.port | int | quote }}
+            - name: SMTP_TLS
+              value: {{ .smtp.tls | quote }}
+            - name: SMTP_FROM
+              value: {{ .from | quote }}
+            {{- with .smtp.username }}
+            - name: SMTP_USER
+              value: {{ . | quote }}
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "shoutout.secretName" $ }}
+                  key: smtp-password
+                  optional: true
+            {{- end }}
+            {{- with .smtp.ehloName }}
+            - name: SMTP_EHLO_NAME
+              value: {{ . | quote }}
+            {{- end }}
+            - name: SHOUTOUT_EMAIL_DELAY_SECONDS
+              value: {{ .delaySeconds | int | quote }}
+            - name: SHOUTOUT_BUDGET_REMINDER_DAYS
+              value: {{ .reminderDaysBeforeReset | int | quote }}
+            {{- end }}
+            {{- end }}
             {{- if include "shoutout.extraCaCerts.enabled" . }}
             - name: NODE_EXTRA_CA_CERTS
               value: /etc/shoutout/ca/{{ .Values.app.extraCaCerts.key }}

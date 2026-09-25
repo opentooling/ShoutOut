@@ -26,3 +26,12 @@ export function formatDayMonth(date: Date): string {
 export function formatMonthYear(date: Date): string {
   return `${MONTHS[date.getUTCMonth()]} ${String(date.getUTCFullYear()).slice(-2)}`;
 }
+
+/** "a day", "5 days", "a week", "two weeks", "3 weeks". */
+export function formatDayCount(days: number): string {
+  if (days % 7 === 0 && days > 0) {
+    const weeks = days / 7;
+    return weeks === 1 ? "a week" : weeks === 2 ? "two weeks" : `${weeks} weeks`;
+  }
+  return days === 1 ? "a day" : `${days} days`;
+}

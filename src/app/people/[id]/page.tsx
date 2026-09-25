@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { updateEmailPreferencesAction } from "@/app/actions/notifications";
 import { auth } from "@/auth";
 import { AppHeader } from "@/components/layout/app-header";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { EmailPreferencesForm } from "@/components/notifications/email-preferences-form";
 import { FeedList } from "@/components/shoutouts/feed-list";
 import { Avatar } from "@/components/ui/avatar";
 import { buttonClasses } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { getDb } from "@/lib/db";
 import { getThemePreference } from "@/lib/theme-server";
+import { activeEmailConfig } from "@/server/notifications/email-config";
+import { getEmailPreferences } from "@/server/notifications/preferences";
 import { getProfile, listProfileShoutouts, type ProfileTab } from "@/server/users/profile";
 
 export const metadata: Metadata = { title: "Profile" };
@@ -31,6 +35,7 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
   }
   const page = await listProfileShoutouts(db, user.id, id, tab, { cursor, now });
   const { person } = profile;
+  const emailConfig = profile.isSelf ? activeEmailConfig() : null;
   const firstName = person.name.split(" ")[0];
 
   const tabs: { key: ProfileTab; label: string; count: number }[] = [
@@ -87,10 +92,25 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
             </div>
           )}
           {profile.isSelf ? (
-            <div className="mt-6 flex items-center justify-between gap-3 border-t-2 border-border pt-4">
-              <h2 className="text-sm font-bold text-muted">Appearance</h2>
-              <ThemeToggle initial={await getThemePreference()} />
-            </div>
+            <>
+              <div className="mt-6 flex items-center justify-between gap-3 border-t-2 border-border pt-4">
+                <h2 className="text-sm font-bold text-muted">Appearance</h2>
+                <ThemeToggle initial={await getThemePreference()} />
+              </div>
+              {emailConfig && (
+                <div
+                  id="email-settings"
+                  className="mt-4 scroll-mt-24 space-y-3 border-t-2 border-border pt-4"
+                >
+                  <h2 className="text-sm font-bold text-muted">Email me</h2>
+                  <EmailPreferencesForm
+                    initial={await getEmailPreferences(db, user.id)}
+                    reminderDays={emailConfig.reminderDays}
+                    action={updateEmailPreferencesAction}
+                  />
+                </div>
+              )}
+            </>
           ) : (
             <p className="mt-4 text-xs text-muted">Only public shoutouts are shown.</p>
           )}

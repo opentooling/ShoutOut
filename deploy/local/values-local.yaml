@@ -12,3 +12,75 @@ keycloak:
     sslRequired: none
     seedDemoUsers: true
     demoUserPassword: shoutout
+
+# Emails go to Mailpit, a test mail server; read them at http://mail.localtest.me.
+# Short delay and reminders a full quarter ahead, so both can be tried straight away.
+notifications:
+  email:
+    enabled: true
+    from: "ShoutOut <shoutout@shoutout.localtest.me>"
+    smtp:
+      host: mailpit
+      port: 1025
+      tls: none
+    delaySeconds: 10
+    reminderDaysBeforeReset: 60
+
+extraObjects:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: mailpit
+      labels: { app.kubernetes.io/name: mailpit }
+    spec:
+      replicas: 1
+      selector:
+        matchLabels: { app.kubernetes.io/name: mailpit }
+      template:
+        metadata:
+          labels: { app.kubernetes.io/name: mailpit }
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: mailpit
+              image: docker.io/axllent/mailpit:v1.31.2
+              ports:
+                - { name: smtp, containerPort: 1025 }
+                - { name: http, containerPort: 8025 }
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: [ALL] }
+              volumeMounts:
+                - { name: tmp, mountPath: /tmp }
+              resources:
+                requests: { cpu: 10m, memory: 32Mi }
+                limits: { memory: 128Mi }
+          volumes:
+            - { name: tmp, emptyDir: {} }
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: mailpit
+    spec:
+      selector: { app.kubernetes.io/name: mailpit }
+      ports:
+        - { name: smtp, port: 1025, targetPort: smtp }
+        - { name: http, port: 80, targetPort: http }
+  - apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: mailpit
+    spec:
+      ingressClassName: traefik
+      rules:
+        - host: mail.localtest.me
+          http:
+            paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service: { name: mailpit, port: { name: http } }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDayMonth, formatMonthYear, formatRelativeTime } from "./format";
+import { formatDayCount, formatDayMonth, formatMonthYear, formatRelativeTime } from "./format";
 
 describe("formatRelativeTime", () => {
   const now = new Date("2026-09-17T12:00:00Z");
@@ -32,5 +32,16 @@ describe("formatDayMonth", () => {
 describe("formatMonthYear", () => {
   it("formats in UTC with a two-digit year", () => {
     expect(formatMonthYear(new Date("2026-09-01T00:00:00Z"))).toBe("Sep 26");
+  });
+});
+
+describe("formatDayCount", () => {
+  it("uses weeks for whole weeks", () => {
+    expect(formatDayCount(1)).toBe("a day");
+    expect(formatDayCount(5)).toBe("5 days");
+    expect(formatDayCount(0)).toBe("0 days");
+    expect(formatDayCount(7)).toBe("a week");
+    expect(formatDayCount(14)).toBe("two weeks");
+    expect(formatDayCount(21)).toBe("3 weeks");
   });
 });
