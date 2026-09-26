@@ -11,6 +11,7 @@ Also available in the app at **/guide**.
 - [Signing in](#signing-in)
 - [The feed](#the-feed)
 - [Sending a shoutout](#sending-a-shoutout)
+- [Adding points](#points)
 - [Your quarterly budget](#your-budget)
 - [Reactions and comments](#reactions-and-comments)
 - [Editing or deleting your shoutout](#editing-and-deleting)
@@ -70,11 +71,27 @@ A shoutout is a short, specific thank-you on a card, tied to one of our company 
 
 ![The Send a shoutout form with a recipient, card, value and message filled in, and a live preview](../public/guide/send.jpg)
 
+<a id="points"></a>
+
+### Adding points
+
+If your company uses points, you can add some to a shoutout for help that went well beyond the everyday. Points are always optional: the message matters most.
+
+1. While sending a shoutout, pick an amount under **Add points?**, or leave it at **No points**.
+2. Everyone you thank gets that amount, so 10 points to three people uses 30 of your points. Amounts you can't afford are greyed out.
+3. Send it as usual. The points show on the shoutout for you, the people you thanked and admins; nobody else sees them.
+
+- You get a points budget each quarter (100 unless your company changed it), shown under your shoutout budget on the feed. Unused points don't carry over.
+- Points you receive build up: see your total on the feed and on your profile. Only you and admins can see it.
+- Deleting a shoutout within 24 hours gives the points back.
+
+![The Add points choices on the send form, with 10 points selected](../public/guide/points.jpg)
+
 <a id="your-budget"></a>
 
 ### Your quarterly budget
 
-Everyone gets a set number of shoutouts each calendar quarter (20 unless your company changed it). Each person you thank uses one, so a shoutout to three people uses three.
+Unless your company has turned it off, everyone gets a set number of shoutouts each calendar quarter (20 unless your company changed it). Each person you thank uses one, so a shoutout to three people uses three.
 
 - The meter on the feed shows what you have left and when it resets.
 - The budget resets on the first day of each quarter; unused shoutouts don't carry over.

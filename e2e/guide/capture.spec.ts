@@ -159,11 +159,15 @@ test("everyday screens", async ({ page }) => {
 
   await page.goto("/people");
   await page.getByRole("searchbox").fill("Carol");
+  // Wait for the filtered list so the click doesn't land on a list being replaced.
+  await expect(page.getByText("1 person found")).toBeVisible();
   await page
     .getByRole("link", { name: /Carol Chen/ })
     .first()
     .click();
-  await expect(page.getByRole("heading", { level: 1, name: /Carol Chen/ })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /Carol Chen/ })).toBeVisible({
+    timeout: 15_000,
+  });
   await shot(page, "profile.jpg");
 
   await page.goto("/leaderboard?period=quarter");

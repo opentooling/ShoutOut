@@ -86,11 +86,32 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     },
   },
   {
+    id: "points",
+    title: "Adding points",
+    audience: "everyone",
+    intro:
+      "If your company uses points, you can add some to a shoutout for help that went well beyond the everyday. Points are always optional: the message matters most.",
+    steps: [
+      "While sending a shoutout, pick an amount under **Add points?**, or leave it at **No points**.",
+      "Everyone you thank gets that amount, so 10 points to three people uses 30 of your points. Amounts you can't afford are greyed out.",
+      "Send it as usual. The points show on the shoutout for you, the people you thanked and admins; nobody else sees them.",
+    ],
+    tips: [
+      "You get a points budget each quarter (100 unless your company changed it), shown under your shoutout budget on the feed. Unused points don't carry over.",
+      "Points you receive build up: see your total on the feed and on your profile. Only you and admins can see it.",
+      "Deleting a shoutout within 24 hours gives the points back.",
+    ],
+    screenshot: {
+      file: "points.jpg",
+      alt: "The Add points choices on the send form, with 10 points selected",
+    },
+  },
+  {
     id: "your-budget",
     title: "Your quarterly budget",
     audience: "everyone",
     intro:
-      "Everyone gets a set number of shoutouts each calendar quarter (20 unless your company changed it). Each person you thank uses one, so a shoutout to three people uses three.",
+      "Unless your company has turned it off, everyone gets a set number of shoutouts each calendar quarter (20 unless your company changed it). Each person you thank uses one, so a shoutout to three people uses three.",
     tips: [
       "The meter on the feed shows what you have left and when it resets.",
       "The budget resets on the first day of each quarter; unused shoutouts don't carry over.",

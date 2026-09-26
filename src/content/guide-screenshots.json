@@ -9,7 +9,7 @@
   },
   "admin-moderation.jpg": {
     "width": 1572,
-    "height": 1622
+    "height": 1650
   },
   "analytics.jpg": {
     "width": 1764,
@@ -17,7 +17,7 @@
   },
   "budget.jpg": {
     "width": 564,
-    "height": 432
+    "height": 720
   },
   "dark.jpg": {
     "width": 1800,
@@ -33,7 +33,7 @@
   },
   "email-settings.jpg": {
     "width": 1116,
-    "height": 966
+    "height": 1014
   },
   "feed.jpg": {
     "width": 1800,
@@ -47,17 +47,21 @@
     "width": 1764,
     "height": 1287
   },
+  "points.jpg": {
+    "width": 924,
+    "height": 198
+  },
   "profile.jpg": {
     "width": 1800,
     "height": 1350
   },
   "report.jpg": {
     "width": 1044,
-    "height": 1397
+    "height": 1349
   },
   "send.jpg": {
     "width": 1572,
-    "height": 1739
+    "height": 1949
   },
   "signin.jpg": {
     "width": 1800,
