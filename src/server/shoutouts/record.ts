@@ -9,6 +9,8 @@ export interface ShoutoutRecord {
   valueId: string;
   message: string;
   visibility: Visibility;
+  /** Points each recipient got; 0 for none. */
+  points: number;
   moderationStatus: ModerationStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -17,6 +19,6 @@ export interface ShoutoutRecord {
 }
 
 export const SHOUTOUT_COLUMNS = sql`
-  id, sender_id AS "senderId", card_id AS "cardId", value_id AS "valueId", message, visibility,
+  id, sender_id AS "senderId", card_id AS "cardId", value_id AS "valueId", message, visibility, points,
   moderation_status AS "moderationStatus", created_at AS "createdAt", updated_at AS "updatedAt",
   edited_at AS "editedAt", deleted_at AS "deletedAt"`;

@@ -35,3 +35,8 @@ export function formatDayCount(days: number): string {
   }
   return days === 1 ? "a day" : `${days} days`;
 }
+
+/** "1 point", "25 points". */
+export function formatPoints(points: number): string {
+  return `${points} point${points === 1 ? "" : "s"}`;
+}

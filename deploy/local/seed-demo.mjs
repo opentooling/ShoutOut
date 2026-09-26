@@ -53,6 +53,7 @@ const quarterStart = (() => {
 })();
 // Keep demo data well inside each person's budget for the current quarter.
 const usedThisQuarter = Object.fromEntries(people.map((p) => [p, 0]));
+const pointsThisQuarter = Object.fromEntries(people.map((p) => [p, 0]));
 
 const sql = ["BEGIN;"];
 for (let i = 0; i < 140; i++) {
@@ -70,10 +71,16 @@ for (let i = 0; i < 140; i++) {
   }
   const id = `demo_${i}`;
   const createdAt = new Date(at).toISOString();
+  const visibility = rand() < 0.15 ? "PRIVATE" : "PUBLIC";
+  // About a third include points (used when points mode is on), keeping most of
+  // this quarter's points budget free for trying it out.
+  let points = rand() < 0.35 ? pick([5, 5, 10, 10, 25]) : 0;
+  if (at >= quarterStart && pointsThisQuarter[sender] + points * recipients.length > 40) points = 0;
+  if (at >= quarterStart) pointsThisQuarter[sender] += points * recipients.length;
   sql.push(
-    `INSERT INTO shoutouts (id, sender_id, card_id, value_id, message, visibility, created_at, updated_at) VALUES (` +
+    `INSERT INTO shoutouts (id, sender_id, card_id, value_id, message, visibility, points, created_at, updated_at) VALUES (` +
       `${q(id)}, ${user(sender)}, 'card_${pick(cards)}', 'value_${pick(values)}', ${q(`${pick(messages)} [demo]`)}, ` +
-      `'${rand() < 0.15 ? "PRIVATE" : "PUBLIC"}', ${q(createdAt)}, ${q(createdAt)});`,
+      `'${visibility}', ${points}, ${q(createdAt)}, ${q(createdAt)});`,
   );
   for (const r of recipients) {
     sql.push(

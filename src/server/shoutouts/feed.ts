@@ -8,6 +8,11 @@ export interface FeedItem {
   id: string;
   message: string;
   visibility: Visibility;
+  /**
+   * Points each recipient got. Only the sender, the recipients and admins see
+   * the amount; for everyone else (and when there are none) it is null.
+   */
+  points: number | null;
   createdAt: Date;
   editedAt: Date | null;
   card: {
@@ -46,6 +51,7 @@ export interface ShoutoutRow {
   id: string;
   message: string;
   visibility: Visibility;
+  points: number;
   moderationStatus: ModerationStatus;
   senderId: string;
   createdAt: Date;
@@ -96,7 +102,7 @@ export function loadShoutoutRows(
 ): Promise<ShoutoutRow[]> {
   return db.rows<ShoutoutRow>(sql`
     SELECT
-      s.id, s.message, s.visibility, s.moderation_status AS "moderationStatus",
+      s.id, s.message, s.visibility, s.points, s.moderation_status AS "moderationStatus",
       s.sender_id AS "senderId", s.created_at AS "createdAt", s.edited_at AS "editedAt",
       s.deleted_at AS "deletedAt",
       json_build_object('id', c.id, 'slug', c.slug, 'title', c.title, 'tagline', c.tagline,
@@ -123,11 +129,29 @@ export function loadShoutoutRows(
     LIMIT ${limit}`);
 }
 
-export function toFeedItem(row: ShoutoutRow, viewerId: string, now: Date): FeedItem {
+export interface ViewOptions {
+  /** Admins see the points on every shoutout they can see. */
+  admin?: boolean;
+}
+
+function pointsFor(row: ShoutoutRow, viewerId: string, { admin }: ViewOptions): number | null {
+  if (row.points <= 0) return null;
+  const involved =
+    row.senderId === viewerId || row.recipients.some((recipient) => recipient.id === viewerId);
+  return involved || admin ? row.points : null;
+}
+
+export function toFeedItem(
+  row: ShoutoutRow,
+  viewerId: string,
+  now: Date,
+  view: ViewOptions = {},
+): FeedItem {
   return {
     id: row.id,
     message: row.message,
     visibility: row.visibility,
+    points: pointsFor(row, viewerId, view),
     createdAt: row.createdAt,
     editedAt: row.editedAt,
     card: row.card,
@@ -151,7 +175,12 @@ export async function listShoutouts(
   db: Db,
   viewerId: string,
   where: Sql,
-  { cursor, limit = 20, now = new Date() }: { cursor?: string; limit?: number; now?: Date } = {},
+  {
+    cursor,
+    limit = 20,
+    now = new Date(),
+    ...view
+  }: { cursor?: string; limit?: number; now?: Date } & ViewOptions = {},
 ): Promise<Page> {
   const afterCursor = cursor
     ? sql`AND (s.created_at, s.id) < (SELECT created_at, id FROM shoutouts WHERE id = ${cursor})`
@@ -160,7 +189,7 @@ export async function listShoutouts(
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
   return {
-    items: page.map((row) => toFeedItem(row, viewerId, now)),
+    items: page.map((row) => toFeedItem(row, viewerId, now, view)),
     nextCursor: hasMore ? page[page.length - 1].id : null,
   };
 }
@@ -168,7 +197,12 @@ export async function listShoutouts(
 export function listFeed(
   db: Db,
   viewerId: string,
-  options: { cursor?: string; limit?: number; now?: Date; filters?: FeedFilters } = {},
+  options: {
+    cursor?: string;
+    limit?: number;
+    now?: Date;
+    filters?: FeedFilters;
+  } & ViewOptions = {},
 ): Promise<Page> {
   const { filters = {}, ...paging } = options;
   return listShoutouts(
@@ -184,9 +218,10 @@ export async function getVisibleShoutout(
   viewerId: string,
   id: string,
   now = new Date(),
+  view: ViewOptions = {},
 ): Promise<FeedItem | null> {
   const [row] = await loadShoutoutRows(db, sql`s.id = ${id} AND ${visibleTo(viewerId)}`, {
     limit: 1,
   });
-  return row ? toFeedItem(row, viewerId, now) : null;
+  return row ? toFeedItem(row, viewerId, now, view) : null;
 }

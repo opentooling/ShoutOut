@@ -6,6 +6,11 @@ app:
     repository: docker.io/library/shoutout
     pullPolicy: Never
 
+# Points mode on locally, so it can be tried out.
+config:
+  points:
+    enabled: true
+
 keycloak:
   url: http://auth.localtest.me
   realm:

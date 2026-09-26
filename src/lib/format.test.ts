@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { formatDayCount, formatDayMonth, formatMonthYear, formatRelativeTime } from "./format";
+import {
+  formatDayCount,
+  formatDayMonth,
+  formatMonthYear,
+  formatPoints,
+  formatRelativeTime,
+} from "./format";
 
 describe("formatRelativeTime", () => {
   const now = new Date("2026-09-17T12:00:00Z");
@@ -43,5 +49,13 @@ describe("formatDayCount", () => {
     expect(formatDayCount(7)).toBe("a week");
     expect(formatDayCount(14)).toBe("two weeks");
     expect(formatDayCount(21)).toBe("3 weeks");
+  });
+});
+
+describe("formatPoints", () => {
+  it("uses the singular for one", () => {
+    expect(formatPoints(1)).toBe("1 point");
+    expect(formatPoints(0)).toBe("0 points");
+    expect(formatPoints(25)).toBe("25 points");
   });
 });

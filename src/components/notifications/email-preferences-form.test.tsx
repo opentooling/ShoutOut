@@ -32,7 +32,7 @@ describe("EmailPreferencesForm", () => {
         action={action}
       />,
     );
-    expect(screen.queryByRole("checkbox", { name: /expire/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: /budget resets/ })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Save email settings" }));
     expect((action.mock.calls[0][1] as FormData).get("budgetReminder")).toBe("on");
 

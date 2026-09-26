@@ -50,6 +50,7 @@ export async function sendShoutoutAction(_prev: FormState, formData: FormData): 
     valueId: text(formData, "valueId"),
     message: text(formData, "message"),
     visibility: text(formData, "visibility") || "PUBLIC",
+    points: text(formData, "points"),
   });
   if (!parsed.success) {
     return { status: "error", message: INVALID, fieldErrors: fieldErrors(parsed.error) };

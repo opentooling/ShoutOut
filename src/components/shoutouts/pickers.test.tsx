@@ -2,7 +2,14 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { findCardDesign } from "@/components/cards/designs";
-import { CardPicker, FieldError, MessageField, ValuePicker, VisibilityPicker } from "./pickers";
+import {
+  CardPicker,
+  FieldError,
+  MessageField,
+  PointsPicker,
+  ValuePicker,
+  VisibilityPicker,
+} from "./pickers";
 
 const cards = [
   { id: "c1", design: findCardDesign("thank-you")! },
@@ -62,6 +69,41 @@ describe("VisibilityPicker", () => {
     expect(screen.getByRole("radio", { name: /public/i })).toBeChecked();
     await userEvent.click(screen.getByText("Private"));
     expect(onChange).toHaveBeenCalledWith("PRIVATE");
+  });
+});
+
+describe("PointsPicker", () => {
+  it("offers no points plus the choices, greying out what can't be afforded", async () => {
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <PointsPicker
+        choices={[5, 10, 25]}
+        value={0}
+        onChange={onChange}
+        recipients={0}
+        remaining={20}
+      />,
+    );
+    expect(screen.getByRole("radio", { name: "No points" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "🎁 25" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "🎁 10" })).toBeEnabled();
+    await userEvent.click(screen.getByText("🎁 10"));
+    expect(onChange).toHaveBeenCalledWith(10);
+
+    // With two people, 10 each costs 20: still affordable; the chosen amount stays selectable.
+    rerender(
+      <PointsPicker
+        choices={[5, 10, 25]}
+        value={25}
+        onChange={onChange}
+        recipients={2}
+        remaining={20}
+        error="Too many"
+      />,
+    );
+    expect(screen.getByRole("radio", { name: "🎁 10" })).toBeEnabled();
+    expect(screen.getByRole("radio", { name: "🎁 25" })).toBeEnabled();
+    expect(screen.getByText("Too many")).toBeInTheDocument();
   });
 });
 

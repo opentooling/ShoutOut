@@ -17,11 +17,17 @@ secrets:
   existingSecret: shoutout-secrets
 
 config:
-  # Shoutouts each person can send per calendar quarter (one per recipient).
+  # Limit shoutouts per quarter (one per recipient); false for unlimited.
+  quarterlyBudgetEnabled: true
   quarterlyBudget: 20
   maxRecipients: 5
   # "admins" or "everyone": who can open the analytics dashboard.
   analyticsVisibility: admins
+  # Optional points on shoutouts, from a quarterly points budget (README: Points).
+  points:
+    enabled: false
+    quarterlyBudget: 100
+    choices: [5, 10, 25, 50]
 
 # Use your own PostgreSQL instead of the bundled one. The secret holds a full
 # connection string, e.g. postgresql://user:password@host:5432/shoutout

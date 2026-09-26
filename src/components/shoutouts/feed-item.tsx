@@ -8,6 +8,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { formatRelativeTime } from "@/lib/format";
 import type { FeedItem } from "@/server/shoutouts/feed";
 import { DeleteShoutoutButton } from "./delete-button";
+import { PointsBadge } from "./points-badge";
 
 const profileLink = (person: { id: string; name: string }) => ({
   name: person.name,
@@ -41,6 +42,9 @@ export function FeedItemCard({
             <span className="rounded-full bg-lilac-soft px-2 py-0.5 text-xs font-bold text-lilac-strong">
               Private
             </span>
+          )}
+          {item.points !== null && (
+            <PointsBadge points={item.points} recipients={item.recipients.length} />
           )}
           <Link href={`/shoutouts/${item.id}`} className="hover:underline">
             <time dateTime={item.createdAt.toISOString()} title={item.createdAt.toUTCString()}>

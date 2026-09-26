@@ -1,6 +1,6 @@
 import type { Db } from "@/lib/db";
 import { sql, type Sql } from "@/lib/sql";
-import { listShoutouts, visibleTo, type Page } from "../shoutouts/feed";
+import { listShoutouts, visibleTo, type Page, type ViewOptions } from "../shoutouts/feed";
 
 export type ProfileTab = "received" | "sent";
 
@@ -62,7 +62,7 @@ export function listProfileShoutouts(
   viewerId: string,
   personId: string,
   tab: ProfileTab,
-  options: { cursor?: string; limit?: number; now?: Date } = {},
+  options: { cursor?: string; limit?: number; now?: Date } & ViewOptions = {},
 ): Promise<Page> {
   return listShoutouts(
     db,

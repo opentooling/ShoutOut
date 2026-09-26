@@ -17,7 +17,17 @@ describe("sendShoutoutSchema", () => {
       ...valid,
       recipientIds: ["a", "b"],
       message: "Thanks!",
+      points: 0,
     });
+  });
+
+  it("reads points as a whole number, empty meaning none", () => {
+    expect(schema.parse({ ...valid, points: "25" }).points).toBe(25);
+    expect(schema.parse({ ...valid, points: "" }).points).toBe(0);
+    for (const points of ["-5", "2.5", "lots"]) {
+      const result = schema.safeParse({ ...valid, points });
+      expect(fieldErrors(result.error!)).toEqual({ points: "Pick an amount of points" });
+    }
   });
 
   it("reports the first problem per field", () => {

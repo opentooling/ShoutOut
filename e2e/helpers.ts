@@ -32,7 +32,8 @@ export function e2eMessage(text: string) {
 }
 
 export async function remainingBudget(page: Page): Promise<number> {
-  return Number(await page.getByRole("progressbar").getAttribute("aria-valuenow"));
+  const meter = page.getByRole("progressbar", { name: "Shoutouts left this quarter" });
+  return Number(await meter.getAttribute("aria-valuenow"));
 }
 
 export async function sendShoutout(

@@ -118,6 +118,19 @@ Call with (dict "ctx" $ "key" "auth-secret" "value" .Values.secrets.authSecret)
 {{- if and .Values.app.extraCaCerts.configMap .Values.app.extraCaCerts.secret }}
 {{- fail "app.extraCaCerts: set configMap or secret, not both" }}
 {{- end }}
+{{- with .Values.config.points }}
+{{- if not .choices }}
+{{- fail "config.points.choices needs at least one amount" }}
+{{- end }}
+{{- range .choices }}
+{{- if or (not (regexMatch "^[0-9]+$" (toString .))) (lt (int .) 1) }}
+{{- fail (printf "config.points.choices must be positive whole numbers, got %v" .) }}
+{{- end }}
+{{- end }}
+{{- if lt (int .quarterlyBudget) 1 }}
+{{- fail "config.points.quarterlyBudget must be at least 1" }}
+{{- end }}
+{{- end }}
 {{- with .Values.notifications.email }}
 {{- if .enabled }}
 {{- if not .smtp.host }}

@@ -8,6 +8,7 @@ import { FeedItemCard } from "@/components/shoutouts/feed-item";
 import { CommentForm, CommentList } from "@/components/social/comments";
 import { getDb } from "@/lib/db";
 import { listComments } from "@/server/social/comments";
+import { isAdmin } from "@/server/auth/roles";
 import { getVisibleShoutout } from "@/server/shoutouts/feed";
 
 export const metadata: Metadata = { title: "Shoutout" };
@@ -22,7 +23,7 @@ export default async function ShoutoutPage({ params }: PageProps<"/shoutouts/[id
   const db = getDb();
   const now = new Date();
   const [shoutout, comments] = await Promise.all([
-    getVisibleShoutout(db, user.id, id, now),
+    getVisibleShoutout(db, user.id, id, now, { admin: isAdmin(user.roles) }),
     listComments(db, user.id, id),
   ]);
   if (!shoutout) {

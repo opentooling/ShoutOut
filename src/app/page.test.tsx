@@ -28,7 +28,9 @@ vi.mock("@/auth", () => ({ auth }));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/lib/db", () => ({ getDb: () => ({}) }));
 vi.mock("@/server/users/search", () => ({ findPerson }));
-vi.mock("@/server/shoutouts/budget", () => ({ getBudget }));
+const getPointsBudget = vi.fn();
+const getPointsBalance = vi.fn();
+vi.mock("@/server/shoutouts/budget", () => ({ getBudget, getPointsBudget, getPointsBalance }));
 vi.mock("@/server/shoutouts/feed", () => ({ listFeed }));
 const topRecipients = vi.fn();
 vi.mock("@/server/insights/leaderboard", () => ({ topRecipients }));
@@ -70,6 +72,33 @@ describe("HomePage", () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  it("shows points left to give and the points received when points mode is on", async () => {
+    vi.stubEnv("SHOUTOUT_POINTS_ENABLED", "true");
+    vi.stubEnv("SHOUTOUT_BUDGET_ENABLED", "false");
+    getPointsBudget.mockResolvedValue({ ...budget(0), allowance: 100, remaining: 40 });
+    getPointsBalance.mockResolvedValue({ balance: 125, receivedThisQuarter: 25 });
+    auth.mockResolvedValue({ user: { ...bob, roles: ["shoutout-admin"] } });
+    render(await HomePage(props()));
+    expect(getBudget).not.toHaveBeenCalled();
+    expect(screen.queryByRole("progressbar", { name: "Shoutouts left this quarter" })).toBeNull();
+    expect(
+      screen.getByRole("progressbar", { name: "Points left to give this quarter" }),
+    ).toHaveAttribute("aria-valuenow", "40");
+    expect(screen.getByText(/You've received/)).toHaveTextContent(
+      "You've received 125 points so far, 25 this quarter.",
+    );
+    // With no shoutout budget there is always a Send button.
+    expect(screen.getByRole("link", { name: "Send a shoutout" })).toBeInTheDocument();
+    expect(listFeed.mock.calls[0][2]).toMatchObject({ admin: true });
+
+    getPointsBalance.mockResolvedValue({ balance: 0, receivedThisQuarter: 0 });
+    render(await HomePage(props()));
+    expect(screen.getAllByText(/You've received/).at(-1)).toHaveTextContent(
+      /^🎁 You've received 0 points so far\.$/,
+    );
   });
 
   it("redirects anonymous visitors to sign in", async () => {

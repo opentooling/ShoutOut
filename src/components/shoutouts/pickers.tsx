@@ -109,6 +109,65 @@ export function ValuePicker({
   );
 }
 
+export function PointsPicker({
+  choices,
+  value,
+  onChange,
+  recipients,
+  remaining,
+  error,
+}: {
+  choices: number[];
+  value: number;
+  onChange: (points: number) => void;
+  /** People picked so far; each gets the amount. */
+  recipients: number;
+  /** Points left to give this quarter. */
+  remaining: number;
+  error?: string;
+}) {
+  const people = Math.max(recipients, 1);
+  const options = [0, ...choices];
+  return (
+    <fieldset aria-describedby={cn("points-hint", error && "points-error")}>
+      <legend className="font-display text-xl font-semibold">Add points? (optional)</legend>
+      <p id="points-hint" className="mt-1 text-sm text-muted">
+        Each person you thank gets this amount. Only they, you and admins see it.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {options.map((option) => {
+          const checked = value === option;
+          const tooMany = option * people > remaining;
+          return (
+            <label
+              key={option}
+              className={cn(
+                "rounded-full border-2 px-4 py-2 font-bold transition has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-ring",
+                checked
+                  ? "border-sunny-strong bg-sunny text-on-sunny"
+                  : "border-border bg-surface hover:bg-surface-muted",
+                tooMany ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+              )}
+            >
+              <input
+                type="radio"
+                name="points"
+                value={option}
+                checked={checked}
+                disabled={tooMany && !checked}
+                onChange={() => onChange(option)}
+                className="sr-only"
+              />
+              {option === 0 ? "No points" : `🎁 ${option}`}
+            </label>
+          );
+        })}
+      </div>
+      <FieldError id="points-error" message={error} />
+    </fieldset>
+  );
+}
+
 export function VisibilityPicker({
   value,
   onChange,

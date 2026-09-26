@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import { recordAudit } from "@/server/admin/audit";
 import { exportLeaderboardsCsv, exportPeopleCsv, exportShoutoutsCsv } from "@/server/admin/export";
+import { exportPointsCsv } from "@/server/admin/points";
 import { isAdmin } from "@/server/auth/roles";
 import { parsePeriod, type DateRange } from "@/server/insights/periods";
 import { parseDay } from "@/server/shoutouts/filters";
@@ -32,6 +33,9 @@ export async function GET(request: Request, { params }: RouteContext<"/admin/exp
     csv =
       kind === "shoutouts" ? await exportShoutoutsCsv(db, range) : await exportPeopleCsv(db, range);
     details = { kind, from: search.get("from") ?? "", to: search.get("to") ?? "" };
+  } else if (kind === "points") {
+    csv = await exportPointsCsv(db);
+    details = { kind };
   } else if (kind === "leaderboards") {
     const period = parsePeriod(search.get("period"));
     csv = await exportLeaderboardsCsv(db, period);

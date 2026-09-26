@@ -8,10 +8,12 @@ import { buttonClasses } from "@/components/ui/button";
 import {
   CardPicker,
   MessageField,
+  PointsPicker,
   ValuePicker,
   VisibilityPicker,
   type CardOption,
 } from "./pickers";
+import { PointsBadge } from "./points-badge";
 import { RecipientPicker, type Person, type SearchPeople } from "./recipient-picker";
 
 export interface SendFormProps {
@@ -19,7 +21,10 @@ export interface SendFormProps {
   cards: CardOption[];
   values: { id: string; name: string }[];
   senderName: string;
-  remaining: number;
+  /** Shoutouts left this quarter, or null when there is no shoutout budget. */
+  remaining: number | null;
+  /** Points mode, when on: points left to give and the amounts to choose from. */
+  points?: { remaining: number; choices: number[] } | null;
   maxRecipients: number;
   maxMessageLength: number;
   search?: SearchPeople;
@@ -31,6 +36,7 @@ export function SendShoutoutForm({
   values,
   senderName,
   remaining,
+  points: pointsMode = null,
   maxRecipients,
   maxMessageLength,
   search,
@@ -41,12 +47,30 @@ export function SendShoutoutForm({
   const [valueId, setValueId] = useState("");
   const [message, setMessage] = useState("");
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PUBLIC");
+  const [points, setPoints] = useState(0);
 
   const errors = state.status === "error" ? state.fieldErrors : {};
   const card = cards.find((c) => c.id === cardId);
   const value = values.find((v) => v.id === valueId);
-  const overBudget = recipients.length > remaining;
-  const maxPeople = Math.min(maxRecipients, Math.max(remaining, 1));
+  const overBudget = remaining !== null && recipients.length > remaining;
+  const pointsCost = points * recipients.length;
+  const overPoints = pointsMode !== null && pointsCost > pointsMode.remaining;
+  const maxPeople =
+    remaining === null ? maxRecipients : Math.min(maxRecipients, Math.max(remaining, 1));
+  const summary = [
+    remaining === null
+      ? null
+      : recipients.length === 0
+        ? `You have ${remaining} shoutouts left this quarter.`
+        : `This uses ${recipients.length} of your ${remaining} remaining shoutouts.`,
+    pointsMode === null
+      ? null
+      : pointsCost > 0
+        ? `It gives ${pointsCost} of your ${pointsMode.remaining} points.`
+        : `You have ${pointsMode.remaining} points to give this quarter.`,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <form action={formAction} className="grid gap-8 lg:grid-cols-[1fr_22rem]">
@@ -74,6 +98,16 @@ export function SendShoutoutForm({
           maxLength={maxMessageLength}
           error={errors.message}
         />
+        {pointsMode && (
+          <PointsPicker
+            choices={pointsMode.choices}
+            value={points}
+            onChange={setPoints}
+            recipients={recipients.length}
+            remaining={pointsMode.remaining}
+            error={errors.points}
+          />
+        )}
         <VisibilityPicker value={visibility} onChange={setVisibility} />
       </div>
 
@@ -86,17 +120,27 @@ export function SendShoutoutForm({
             to={recipients.length ? recipients.map((r) => r.name) : ["…"]}
             value={value?.name}
             message={message.trim() || "Your message will appear here."}
+            meta={
+              points > 0 ? (
+                <PointsBadge points={points} recipients={recipients.length} />
+              ) : undefined
+            }
           />
         )}
-        <p className="text-sm text-muted" aria-live="polite">
-          {recipients.length === 0
-            ? `You have ${remaining} shoutouts left this quarter.`
-            : `This uses ${recipients.length} of your ${remaining} remaining shoutouts.`}
-        </p>
+        {summary && (
+          <p className="text-sm text-muted" aria-live="polite">
+            {summary}
+          </p>
+        )}
+        {overPoints && (
+          <p className="text-sm font-bold text-coral-strong">
+            Not enough points left for everyone: pick a smaller amount or fewer people.
+          </p>
+        )}
         <div className="flex gap-3">
           <button
             type="submit"
-            disabled={pending || overBudget}
+            disabled={pending || overBudget || overPoints}
             className={buttonClasses({ size: "lg", className: "flex-1" })}
           >
             {pending ? "Sending…" : "Send shoutout"}

@@ -17,6 +17,7 @@ interface ShoutoutExportRow {
   value: string;
   visibility: string;
   message: string;
+  points: number;
   reactions: number;
   comments: number;
   edited: boolean;
@@ -33,6 +34,7 @@ export async function exportShoutoutsCsv(db: Db, range: DateRange): Promise<stri
       (SELECT COUNT(*)::int FROM shoutout_recipients rr WHERE rr.shoutout_id = s.id) AS "recipientCount",
       c.title AS card, v.name AS value, lower(s.visibility::text) AS visibility,
       CASE WHEN s.visibility = 'PUBLIC' THEN s.message ELSE '[private]' END AS message,
+      s.points,
       (SELECT COUNT(*)::int FROM reactions re WHERE re.shoutout_id = s.id) AS reactions,
       (SELECT COUNT(*)::int FROM comments cm WHERE cm.shoutout_id = s.id AND cm.deleted_at IS NULL) AS comments,
       s.edited_at IS NOT NULL AS edited
@@ -54,6 +56,7 @@ export async function exportShoutoutsCsv(db: Db, range: DateRange): Promise<stri
     { header: "value", value: (r) => r.value },
     { header: "visibility", value: (r) => r.visibility },
     { header: "message", value: (r) => r.message },
+    { header: "points_per_recipient", value: (r) => r.points },
     { header: "reactions", value: (r) => r.reactions },
     { header: "comments", value: (r) => r.comments },
     { header: "edited", value: (r) => r.edited },

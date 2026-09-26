@@ -1,14 +1,16 @@
 import type { ReactNode } from "react";
+import { loadConfig } from "@/lib/config";
 import { SegmentedLinks } from "@/components/insights/segmented-links";
 import { AppHeader, type HeaderUser } from "@/components/layout/app-header";
 import { Notice } from "@/components/shoutouts/notice";
 
-export type AdminSection = "moderation" | "cards" | "values" | "export" | "audit";
+export type AdminSection = "moderation" | "cards" | "values" | "points" | "export" | "audit";
 
 const SECTIONS: { value: AdminSection; label: string; href: string }[] = [
   { value: "moderation", label: "Moderation", href: "/admin" },
   { value: "cards", label: "Cards", href: "/admin/cards" },
   { value: "values", label: "Values", href: "/admin/values" },
+  { value: "points", label: "Points", href: "/admin/points" },
   { value: "export", label: "Export", href: "/admin/export" },
   { value: "audit", label: "Audit log", href: "/admin/audit" },
 ];
@@ -35,7 +37,10 @@ export function AdminShell({
           <SegmentedLinks
             label="Admin sections"
             current={section}
-            options={SECTIONS.map((s) => ({
+            options={SECTIONS.filter(
+              // The Points tab appears with points mode (or while you're on it).
+              (s) => s.value !== "points" || loadConfig().points.enabled || section === "points",
+            ).map((s) => ({
               ...s,
               label:
                 s.value === "moderation" && pendingCount ? `${s.label} (${pendingCount})` : s.label,

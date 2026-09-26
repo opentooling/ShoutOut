@@ -13,7 +13,8 @@ vi.mock("@/auth", () => ({ auth }));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/lib/db", () => ({ getDb: () => ({}) }));
 vi.mock("@/app/actions/shoutouts", () => ({ sendShoutoutAction: vi.fn() }));
-vi.mock("@/server/shoutouts/budget", () => ({ getBudget }));
+const getPointsBudget = vi.fn();
+vi.mock("@/server/shoutouts/budget", () => ({ getBudget, getPointsBudget }));
 vi.mock("@/server/shoutouts/catalog", () => ({
   listActiveCards: async () => [
     {
@@ -42,6 +43,24 @@ describe("NewShoutoutPage", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.clearAllMocks();
+  });
+
+  it("passes the points budget and no shoutout limit when configured", async () => {
+    vi.stubEnv("SHOUTOUT_BUDGET_ENABLED", "false");
+    vi.stubEnv("SHOUTOUT_POINTS_ENABLED", "true");
+    vi.stubEnv("SHOUTOUT_POINTS_CHOICES", "10,20");
+    getPointsBudget.mockResolvedValue({
+      allowance: 100,
+      used: 70,
+      remaining: 30,
+      resetsAt: new Date(),
+    });
+    render(await NewShoutoutPage());
+    expect(getBudget).not.toHaveBeenCalled();
+    expect(SendShoutoutForm.mock.calls[0][0]).toMatchObject({
+      remaining: null,
+      points: { remaining: 30, choices: [10, 20] },
+    });
   });
 
   it("redirects anonymous visitors", async () => {

@@ -6,6 +6,8 @@ export type DomainErrorCode =
   | "CARD_NOT_FOUND"
   | "VALUE_NOT_FOUND"
   | "BUDGET_EXCEEDED"
+  | "POINTS_EXCEEDED"
+  | "INVALID_POINTS"
   | "EDIT_WINDOW_CLOSED"
   | "ALREADY_REPORTED"
   | "DUPLICATE"

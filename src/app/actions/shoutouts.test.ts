@@ -77,6 +77,7 @@ describe("shoutout actions", () => {
           valueId: "value",
           message: "Thanks!",
           visibility: "PRIVATE",
+          points: 0,
         },
         expect.objectContaining({ quarterlyBudget: 20, maxRecipients: 2, emailDelayMs: null }),
       );

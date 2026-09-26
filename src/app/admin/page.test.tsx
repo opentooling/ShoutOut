@@ -29,6 +29,7 @@ const makeCase = (id: string, overrides: Partial<ModerationCase> = {}): Moderati
     id,
     message: `Message ${id}`,
     visibility: "PUBLIC",
+    points: null,
     createdAt: new Date(),
     editedAt: null,
     card: {

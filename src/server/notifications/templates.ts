@@ -27,13 +27,22 @@ export interface ShoutoutEmail {
   visibility: Visibility;
   /** Other people thanked in the same shoutout. */
   otherRecipients: number;
+  /** Points the recipient got; 0 for none. */
+  points: number;
+}
+
+interface Left {
+  remaining: number;
+  allowance: number;
 }
 
 export interface BudgetReminderEmail {
   recipientId: string;
   recipientName: string;
-  remaining: number;
-  allowance: number;
+  /** Shoutouts left, when there is a shoutout budget. */
+  shoutouts: Left | null;
+  /** Points left to give, when points mode is on and some are left. */
+  points: Left | null;
   resetsAt: Date;
   reminderDays: number;
 }
@@ -109,6 +118,8 @@ export function shoutoutReceivedEmail(email: ShoutoutEmail, appUrl: string): Ema
         ? " along with one other person"
         : ` along with ${email.otherRecipients} other people`;
   const lead = `${email.senderName} recognised you${others} for ${email.valueName}.`;
+  const pointsNote =
+    email.points > 0 ? `${email.senderName} also gave you ${plural(email.points, "point")}.` : null;
   const privateNote =
     email.visibility === "PRIVATE"
       ? "This shoutout is private: only the sender and the people it thanks can see it."
@@ -120,6 +131,7 @@ export function shoutoutReceivedEmail(email: ShoutoutEmail, appUrl: string): Ema
     lead,
     `${email.cardTitle}: ${email.cardTagline}`,
     `"${email.message}"`,
+    ...(pointsNote ? [pointsNote] : []),
     ...(privateNote ? [privateNote] : []),
     `See it on ShoutOut: ${url}`,
     "--",
@@ -136,6 +148,7 @@ export function shoutoutReceivedEmail(email: ShoutoutEmail, appUrl: string): Ema
 <p style="margin:0;font-size:17px;white-space:pre-line">${escapeHtml(email.message)}</p>
 </td></tr>
 </table>
+${pointsNote ? `<p style="margin:16px 0 0;font-weight:700">🎁 ${escapeHtml(pointsNote)}</p>` : ""}
 ${privateNote ? `<p style="margin:12px 0 0;font-size:13px;color:${MUTED}">🔒 ${escapeHtml(privateNote)}</p>` : ""}
 <p style="margin:24px 0 8px">${button(url, "See it on ShoutOut")}</p>`,
     foot.html,
@@ -150,13 +163,18 @@ ${privateNote ? `<p style="margin:12px 0 0;font-size:13px;color:${MUTED}">🔒 $
 
 export function budgetReminderEmail(email: BudgetReminderEmail, appUrl: string): EmailContent {
   const url = `${appUrl}/shoutouts/new`;
-  const left = plural(email.remaining, "shoutout");
   // resetsAt is the first moment of the next quarter; the last usable day is the day before.
   const lastDay = formatDayMonth(new Date(email.resetsAt.getTime() - 1));
   const when = formatDayCount(email.reminderDays);
   const foot = footer(appUrl, email.recipientId, "budget reminders");
+  const parts = [
+    email.shoutouts &&
+      `${email.shoutouts.remaining} of your ${email.shoutouts.allowance} shoutouts`,
+    email.points && `${email.points.remaining} of your ${email.points.allowance} points`,
+  ].filter((part): part is string => Boolean(part));
+  const stillHave = parts.join(" and ");
   const lines = [
-    `Your ShoutOut budget resets in about ${when}. You still have ${email.remaining} of your ${email.allowance} shoutouts to give, and unused ones don't carry over: the last day to use them is ${lastDay}.`,
+    `Your ShoutOut budget resets in about ${when}. You still have ${stillHave} to give, and unused ones don't carry over: the last day to use them is ${lastDay}.`,
     "Who made a difference for you this quarter? Think beyond your own team: someone who answered a question, unblocked you, or quietly made things better.",
   ];
 
@@ -170,15 +188,20 @@ export function budgetReminderEmail(email: BudgetReminderEmail, appUrl: string):
 
   const html = layout(
     `<p style="margin:0 0 16px">Hi ${escapeHtml(firstName(email.recipientName))},</p>
-<p style="margin:0 0 16px">Your ShoutOut budget resets in about ${escapeHtml(when)}. You still have <strong>${email.remaining} of your ${email.allowance} shoutouts</strong> to give, and unused ones don't carry over: the last day to use them is <strong>${escapeHtml(lastDay)}</strong>.</p>
+<p style="margin:0 0 16px">Your ShoutOut budget resets in about ${escapeHtml(when)}. You still have <strong>${escapeHtml(stillHave)}</strong> to give, and unused ones don't carry over: the last day to use them is <strong>${escapeHtml(lastDay)}</strong>.</p>
 <p style="margin:0 0 16px">${escapeHtml(lines[1])}</p>
 <p style="margin:24px 0 8px">${button(url, "Send a shoutout")}</p>`,
     foot.html,
   );
 
-  return {
-    subject: `You have ${left} left this quarter`,
-    text,
-    html,
-  };
+  const subjectParts = [
+    email.shoutouts && plural(email.shoutouts.remaining, "shoutout"),
+    email.points && plural(email.points.remaining, "point"),
+  ].filter(Boolean);
+  const subject =
+    email.shoutouts || !email.points
+      ? `You have ${subjectParts.join(" and ")} left this quarter`
+      : `You have ${subjectParts[0]} left to give this quarter`;
+
+  return { subject, text, html };
 }

@@ -41,7 +41,7 @@ function Examples({ good, weak }: { good: string; weak: string }) {
 
 export default async function AboutPage() {
   const session = await auth();
-  const { quarterlyBudget, maxRecipients } = loadConfig();
+  const { budgetEnabled, quarterlyBudget, maxRecipients, points } = loadConfig();
   const values = await listActiveValues(getDb());
 
   return (
@@ -123,22 +123,44 @@ export default async function AboutPage() {
           </p>
         </Section>
 
-        <Section
-          title={`Why you only get ${quarterlyBudget} a quarter`}
-          lead="Something given out endlessly stops meaning anything."
-        >
-          <p>
-            Everyone gets {quarterlyBudget} shoutouts per quarter, and each person you name uses
-            one. The limit is not there to ration kindness. It is there so that a shoutout stays
-            worth receiving: if you have a budget, you spend it on the moments that genuinely stood
-            out.
-          </p>
-          <p>
-            The count resets at the start of every quarter, so there is nothing to save up and
-            nothing to lose. If you find yourself with a full balance in the last week of the
-            quarter, that is worth noticing: someone around you has probably earned one.
-          </p>
-        </Section>
+        {budgetEnabled && (
+          <Section
+            title={`Why you only get ${quarterlyBudget} a quarter`}
+            lead="Something given out endlessly stops meaning anything."
+          >
+            <p>
+              Everyone gets {quarterlyBudget} shoutouts per quarter, and each person you name uses
+              one. The limit is not there to ration kindness. It is there so that a shoutout stays
+              worth receiving: if you have a budget, you spend it on the moments that genuinely
+              stood out.
+            </p>
+            <p>
+              The count resets at the start of every quarter, so there is nothing to save up and
+              nothing to lose. If you find yourself with a full balance in the last week of the
+              quarter, that is worth noticing: someone around you has probably earned one.
+            </p>
+          </Section>
+        )}
+
+        {points.enabled && (
+          <Section
+            title="Points: a little extra, when it counts"
+            lead="The words matter most. Points are an optional extra on top."
+          >
+            <p>
+              You can add points to a shoutout, from {points.quarterlyBudget} you can give each
+              quarter. Everyone you thank gets the amount you pick, so a shoutout with 10 points to
+              three people uses 30. Most shoutouts don&apos;t need points at all; save them for help
+              that went well beyond the everyday.
+            </p>
+            <p>
+              Points you receive build up over time. Only the sender, the people thanked and admins
+              see how many points a shoutout included, so recognition doesn&apos;t turn into a
+              contest over amounts. Like the shoutout budget, points you haven&apos;t given by the
+              end of the quarter don&apos;t carry over.
+            </p>
+          </Section>
+        )}
 
         <Section
           title="Keep it short and specific"
@@ -162,7 +184,7 @@ export default async function AboutPage() {
           <ul className="list-disc space-y-2 pl-5">
             <li>
               You can edit or delete a shoutout for 24 hours after sending it. Deleting it gives you
-              the budget back.
+              the budget {points.enabled ? "and any points " : ""}back.
             </li>
             <li>
               Anyone who can see a shoutout can react to it or add a comment. Joining in costs you

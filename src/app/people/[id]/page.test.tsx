@@ -26,6 +26,8 @@ vi.mock("@/components/shoutouts/feed-list", () => ({ FeedList }));
 const getEmailPreferences = vi.fn();
 vi.mock("@/server/notifications/preferences", () => ({ getEmailPreferences }));
 vi.mock("@/app/actions/notifications", () => ({ updateEmailPreferencesAction: vi.fn() }));
+const getPointsBalance = vi.fn();
+vi.mock("@/server/shoutouts/budget", () => ({ getPointsBalance }));
 
 const { default: ProfilePage, metadata } = await import("./page");
 
@@ -136,8 +138,26 @@ describe("ProfilePage", () => {
     expect(screen.getByRole("heading", { name: "Email me" })).toBeInTheDocument();
     expect(container.querySelector("#email-settings")).not.toBeNull();
     expect(screen.getByRole("checkbox", { name: /someone sends me a shoutout/ })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: /before my shoutouts expire/ })).not.toBeChecked();
+    expect(
+      screen.getByRole("checkbox", { name: /before my quarterly budget resets/ }),
+    ).not.toBeChecked();
     expect(getEmailPreferences).toHaveBeenCalledWith({}, "u2");
+  });
+
+  it("shows your own points balance when points mode is on, and nobody else's", async () => {
+    vi.stubEnv("SHOUTOUT_POINTS_ENABLED", "true");
+    getPointsBalance.mockResolvedValue({ balance: 45, receivedThisQuarter: 15 });
+    render(await ProfilePage(props("u2")));
+    expect(screen.queryByText("Points received")).not.toBeInTheDocument();
+    expect(getPointsBalance).not.toHaveBeenCalled();
+
+    auth.mockResolvedValue({ user: { id: "u2", email: "bob@x", roles: ["shoutout-admin"] } });
+    getProfile.mockResolvedValue({ ...bobProfile, isSelf: true });
+    render(await ProfilePage(props("u2")));
+    expect(screen.getByText("Points received").parentElement).toHaveTextContent(
+      "Points received4515 this quarter · only you see this",
+    );
+    expect(listProfileShoutouts.mock.calls.at(-1)![4]).toMatchObject({ admin: true });
   });
 
   it("never shows email settings on someone else's profile", async () => {

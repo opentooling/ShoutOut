@@ -9,10 +9,12 @@ import { FeedList } from "@/components/shoutouts/feed-list";
 import { Notice } from "@/components/shoutouts/notice";
 import { buttonClasses } from "@/components/ui/button";
 import { loadConfig } from "@/lib/config";
+import { formatPoints } from "@/lib/format";
 import { getDb } from "@/lib/db";
 import { topRecipients } from "@/server/insights/leaderboard";
 import { periodRange } from "@/server/insights/periods";
-import { getBudget } from "@/server/shoutouts/budget";
+import { isAdmin } from "@/server/auth/roles";
+import { getBudget, getPointsBalance, getPointsBudget } from "@/server/shoutouts/budget";
 import { listActiveCards, listActiveValues } from "@/server/shoutouts/catalog";
 import { listFeed } from "@/server/shoutouts/feed";
 import { parseFeedFilters, withParams } from "@/server/shoutouts/filters";
@@ -33,14 +35,19 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const { filters, raw, active } = parseFeedFilters(params);
   const db = getDb();
   const now = new Date();
-  const [budget, feed, cards, values, person, topThisMonth] = await Promise.all([
-    getBudget(db, user.id, loadConfig().quarterlyBudget, now),
-    listFeed(db, user.id, { cursor, now, filters }),
-    listActiveCards(db),
-    listActiveValues(db),
-    filters.personId ? findPerson(db, filters.personId) : null,
-    topRecipients(db, periodRange("month", now), 5, user.id),
-  ]);
+  const config = loadConfig();
+  const pointsOn = config.points.enabled;
+  const [budget, pointsBudget, pointsBalance, feed, cards, values, person, topThisMonth] =
+    await Promise.all([
+      config.budgetEnabled ? getBudget(db, user.id, config.quarterlyBudget, now) : null,
+      pointsOn ? getPointsBudget(db, user.id, config.points.quarterlyBudget, now) : null,
+      pointsOn ? getPointsBalance(db, user.id, now) : null,
+      listFeed(db, user.id, { cursor, now, filters, admin: isAdmin(user.roles) }),
+      listActiveCards(db),
+      listActiveValues(db),
+      filters.personId ? findPerson(db, filters.personId) : null,
+      topRecipients(db, periodRange("month", now), 5, user.id),
+    ]);
   const firstName = user.name?.split(" ")[0] ?? "there";
   const viewerName = user.name ?? user.email ?? "You";
 
@@ -61,7 +68,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
                   <h1 className="font-display text-3xl font-semibold">Hi {firstName} 👋</h1>
                   <p className="mt-1 text-muted">Who made your day better recently?</p>
                 </div>
-                {budget.remaining > 0 ? (
+                {!budget || budget.remaining > 0 ? (
                   <Link href="/shoutouts/new" className={buttonClasses({ size: "lg" })}>
                     Send a shoutout
                   </Link>
@@ -71,12 +78,32 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
                   </p>
                 )}
               </div>
-              <BudgetMeter
-                className="mt-6"
-                allowance={budget.allowance}
-                remaining={budget.remaining}
-                resetsAt={budget.resetsAt}
-              />
+              {budget && (
+                <BudgetMeter
+                  className="mt-6"
+                  allowance={budget.allowance}
+                  remaining={budget.remaining}
+                  resetsAt={budget.resetsAt}
+                />
+              )}
+              {pointsBudget && (
+                <BudgetMeter
+                  className="mt-6"
+                  unit="points"
+                  allowance={pointsBudget.allowance}
+                  remaining={pointsBudget.remaining}
+                  resetsAt={pointsBudget.resetsAt}
+                />
+              )}
+              {pointsBalance && (
+                <p className="mt-4 rounded-2xl bg-sunny-soft px-4 py-3 text-sm">
+                  🎁 You&apos;ve received <strong>{formatPoints(pointsBalance.balance)}</strong> so
+                  far
+                  {pointsBalance.receivedThisQuarter > 0 &&
+                    `, ${pointsBalance.receivedThisQuarter} this quarter`}
+                  .
+                </p>
+              )}
               <p className="mt-4 text-sm text-muted">
                 New here?{" "}
                 <Link href="/guide" className="font-bold text-teal-strong hover:underline">

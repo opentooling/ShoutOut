@@ -12,6 +12,7 @@ const item: FeedItem = {
   id: "s1",
   message: "Thanks for the help",
   visibility: "PUBLIC",
+  points: null,
   createdAt: new Date("2026-09-17T09:00:00Z"),
   editedAt: null,
   card: {
@@ -44,6 +45,24 @@ const item: FeedItem = {
 };
 
 describe("FeedItemCard", () => {
+  it("shows the points when the viewer may see them", () => {
+    const { rerender } = render(
+      <FeedItemCard item={{ ...item, points: 10 }} viewerName="Bob Baker" now={now} />,
+    );
+    expect(screen.getByText("🎁 10 points each")).toHaveAttribute(
+      "title",
+      "Only the sender, the people thanked and admins see points",
+    );
+    rerender(
+      <FeedItemCard
+        item={{ ...item, points: 1, recipients: [item.recipients[0]] }}
+        viewerName="Bob Baker"
+        now={now}
+      />,
+    );
+    expect(screen.getByText("🎁 1 point")).toBeInTheDocument();
+  });
+
   it("shows a public shoutout with profile links, reactions and a comment link", () => {
     render(<FeedItemCard item={item} viewerName="Bob Baker" now={now} />);
     const card = screen.getByRole("article", {

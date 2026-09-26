@@ -20,6 +20,7 @@ const shoutout: ShoutoutEmail = {
   message: "Thanks for <b>everything</b> & more",
   visibility: "PUBLIC",
   otherRecipients: 0,
+  points: 0,
 };
 
 describe("escapeHtml", () => {
@@ -58,6 +59,14 @@ describe("shoutoutReceivedEmail", () => {
     expect(many.text).toContain("This shoutout is private");
     expect(many.html).toContain("🔒");
     expect(many.text).toContain("Hi there,");
+    expect(many.text).not.toContain("points");
+  });
+
+  it("mentions the points the recipient got", () => {
+    const email = shoutoutReceivedEmail({ ...shoutout, points: 25 }, APP);
+    expect(email.text).toContain("Alice Andrews also gave you 25 points.");
+    expect(email.html).toContain("🎁 Alice Andrews also gave you 25 points.");
+    expect(shoutoutReceivedEmail({ ...shoutout, points: 1 }, APP).text).toContain("1 point.");
   });
 });
 
@@ -65,8 +74,8 @@ describe("budgetReminderEmail", () => {
   const reminder = {
     recipientId: "u3",
     recipientName: "Bob Baker",
-    remaining: 12,
-    allowance: 20,
+    shoutouts: { remaining: 12, allowance: 20 },
+    points: null,
     resetsAt: new Date("2026-10-01T00:00:00Z"),
     reminderDays: 14,
   };
@@ -84,8 +93,27 @@ describe("budgetReminderEmail", () => {
   });
 
   it("uses the singular for one", () => {
-    const email = budgetReminderEmail({ ...reminder, remaining: 1, reminderDays: 3 }, APP);
+    const email = budgetReminderEmail(
+      { ...reminder, shoutouts: { remaining: 1, allowance: 20 }, reminderDays: 3 },
+      APP,
+    );
     expect(email.subject).toBe("You have 1 shoutout left this quarter");
     expect(email.text).toContain("resets in about 3 days");
+  });
+
+  it("includes points left to give", () => {
+    const both = budgetReminderEmail(
+      { ...reminder, points: { remaining: 60, allowance: 100 } },
+      APP,
+    );
+    expect(both.subject).toBe("You have 12 shoutouts and 60 points left this quarter");
+    expect(both.text).toContain("You still have 12 of your 20 shoutouts and 60 of your 100 points");
+
+    const pointsOnly = budgetReminderEmail(
+      { ...reminder, shoutouts: null, points: { remaining: 1, allowance: 100 } },
+      APP,
+    );
+    expect(pointsOnly.subject).toBe("You have 1 point left to give this quarter");
+    expect(pointsOnly.text).toContain("You still have 1 of your 100 points to give");
   });
 });

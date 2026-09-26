@@ -1,7 +1,7 @@
 import { loadConfig } from "@/lib/config";
 import { getDb, type Db } from "@/lib/db";
 import { createLogger, type Logger } from "@/lib/logger";
-import { prepareEmail } from "./content";
+import { prepareEmail, type BudgetSettings } from "./content";
 import { emailConfigFromEnv, type EmailConfig } from "./email-config";
 import { createSmtpMailer, smtpHint, type Mailer } from "./mailer";
 import {
@@ -29,8 +29,8 @@ export interface SenderDeps {
   db: Db;
   mailer: Mailer;
   config: EmailConfig;
-  /** Quarterly budget, for the reminder's numbers. */
-  allowance: number;
+  /** The budgets in use, for the reminder's numbers. */
+  budgets: BudgetSettings;
   log: Logger;
 }
 
@@ -54,7 +54,7 @@ async function deliverOne(
 ) {
   const fields = { outboxId: item.id, kind: item.kind, userId: item.userId };
   try {
-    const prepared = await prepareEmail(tx, item, deps.config, deps.allowance, now);
+    const prepared = await prepareEmail(tx, item, deps.config, deps.budgets, now);
     if ("skip" in prepared) {
       await markSkipped(tx, item.id, prepared.skip);
       deps.log.debug("Email skipped", { ...fields, reason: prepared.skip });
@@ -103,7 +103,10 @@ export async function runSender(
   { now = () => new Date(), housekeeping = true, batchSize = BATCH_SIZE } = {},
 ): Promise<DeliveryResult> {
   if (housekeeping) {
-    const queued = await enqueueBudgetReminders(deps.db, now(), deps.config.reminderDays);
+    // Nothing to remind about when neither budget is in use.
+    const { budgetEnabled, points } = deps.budgets;
+    const days = budgetEnabled || points.enabled ? deps.config.reminderDays : 0;
+    const queued = await enqueueBudgetReminders(deps.db, now(), days);
     if (queued > 0) deps.log.info("Budget reminders queued", { count: queued });
     await purgeFinished(deps.db, new Date(now().getTime() - KEEP_FINISHED_MS));
   }
@@ -142,10 +145,10 @@ export async function startEmailNotifications({
   log?: Logger;
 } = {}): Promise<(() => void) | null> {
   let config: EmailConfig | null;
-  let allowance: number;
+  let budgets: BudgetSettings;
   try {
     config = emailConfigFromEnv(env);
-    allowance = loadConfig(env).quarterlyBudget;
+    budgets = loadConfig(env);
   } catch (error) {
     log.error("Email notifications are off: invalid settings", { error });
     return null;
@@ -159,7 +162,7 @@ export async function startEmailNotifications({
     db: db(),
     mailer: mailer(config),
     config,
-    allowance,
+    budgets,
     log,
   };
   log.info("Email notifications are on", {

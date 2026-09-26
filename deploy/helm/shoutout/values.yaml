@@ -51,6 +51,9 @@ secrets:
 
 # ShoutOut behaviour (passed to the app as environment variables).
 config:
+  # -- Limit how many shoutouts each person can send per quarter (SHOUTOUT_BUDGET_ENABLED).
+  # When false, people can send as many as they like.
+  quarterlyBudgetEnabled: true
   # -- Shoutouts each person can send per calendar quarter; each recipient uses one (SHOUTOUT_QUARTERLY_BUDGET).
   quarterlyBudget: 20
   # -- Maximum recipients in one shoutout (SHOUTOUT_MAX_RECIPIENTS).
@@ -58,6 +61,17 @@ config:
   # -- Who can open the analytics dashboard: "admins" or "everyone" (SHOUTOUT_ANALYTICS_VISIBILITY).
   # The "not recognised recently" list is always admin-only.
   analyticsVisibility: admins
+  # Points mode: people can add points to a shoutout from a quarterly points budget.
+  # Everyone thanked gets the amount picked. Only the sender, the recipients and
+  # admins see amounts; admins see balances under Admin -> Points. Points can't be
+  # spent yet (a later rewards integration will use the balances).
+  points:
+    # -- Turn points mode on (SHOUTOUT_POINTS_ENABLED).
+    enabled: false
+    # -- Points each person can give per calendar quarter (SHOUTOUT_POINTS_QUARTERLY_BUDGET).
+    quarterlyBudget: 100
+    # -- Amounts to choose from, per recipient (SHOUTOUT_POINTS_CHOICES).
+    choices: [5, 10, 25, 50]
 
 # Email notifications, sent through your SMTP relay. People get an email when
 # someone sends them a shoutout, and a reminder before their unused shoutouts

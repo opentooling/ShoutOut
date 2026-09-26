@@ -131,7 +131,11 @@ Admins get an **Admin** area:
 
 | Env var                                    | Helm value                                    | Default             | Meaning                                                                                            |
 | ------------------------------------------ | --------------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------- |
+| `SHOUTOUT_BUDGET_ENABLED`                  | `config.quarterlyBudgetEnabled`               | `true`              | Limit shoutouts per quarter; `false` for unlimited                                                 |
 | `SHOUTOUT_QUARTERLY_BUDGET`                | `config.quarterlyBudget`                      | `20`                | Shoutouts per person per calendar quarter (each recipient uses one)                                |
+| `SHOUTOUT_POINTS_ENABLED`                  | `config.points.enabled`                       | `false`             | Points mode: optional points on shoutouts, from a quarterly points budget (see [Points](#points))  |
+| `SHOUTOUT_POINTS_QUARTERLY_BUDGET`         | `config.points.quarterlyBudget`               | `100`               | Points each person can give per quarter (each recipient gets the amount picked)                    |
+| `SHOUTOUT_POINTS_CHOICES`                  | `config.points.choices`                       | `5,10,25,50`        | Amounts to choose from, per recipient                                                              |
 | `SHOUTOUT_MAX_RECIPIENTS`                  | `config.maxRecipients`                        | `5`                 | Most people in one shoutout                                                                        |
 | `SHOUTOUT_SYNC_ON_STARTUP`                 | `userSync.onStartup`                          | `true`              | Sync people from Keycloak when the app starts                                                      |
 | –                                          | `userSync.schedule`                           | `0 * * * *`         | CronJob schedule for the Keycloak people sync                                                      |
@@ -146,6 +150,24 @@ Admins get an **Admin** area:
 | `SHOUTOUT_BUDGET_REMINDER_DAYS`            | `notifications.email.reminderDaysBeforeReset` | `14`                | Days before the quarterly reset to remind people with shoutouts left; `0` turns it off             |
 
 Example: `helm upgrade shoutout deploy/helm/shoutout --reuse-values --set config.quarterlyBudget=30`
+
+## Points
+
+Points mode (`config.points.enabled: true`) lets people add points to a
+shoutout, on top of the message:
+
+- Each person has a points budget per calendar quarter (`config.points.quarterlyBudget`)
+  and picks an amount from `config.points.choices`. Everyone thanked gets that
+  amount, so 10 points to three people uses 30. Unused points don't carry over.
+- Points are optional and independent of the shoutout budget: either, both or
+  neither can be on (`config.quarterlyBudgetEnabled`).
+- Only the sender, the recipients and admins see a shoutout's points. People see
+  their own balance on the feed and their profile.
+- Deleting a shoutout within 24 hours refunds its points. Points from a shoutout
+  hidden after a report don't count for the recipients unless an admin restores it.
+- **Admin → Points** lists everyone's balance, with a CSV download. Points can't
+  be spent yet; the balances are there for a later rewards integration (vouchers
+  or merchandise). Turning points mode off keeps the balances.
 
 ## Troubleshooting sign-in
 

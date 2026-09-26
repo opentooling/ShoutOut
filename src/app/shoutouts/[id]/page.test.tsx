@@ -60,7 +60,9 @@ describe("ShoutoutPage", () => {
     listComments.mockResolvedValue([{ id: "c1" }, { id: "c2" }]);
     render(await ShoutoutPage(props));
     expect(metadata.title).toBe("Shoutout");
-    expect(getVisibleShoutout).toHaveBeenCalledWith({}, "u1", "s1", expect.any(Date));
+    expect(getVisibleShoutout).toHaveBeenCalledWith({}, "u1", "s1", expect.any(Date), {
+      admin: false,
+    });
     expect(FeedItemCard.mock.calls[0][0]).toMatchObject({
       viewerName: "Bob",
       layout: "stacked",

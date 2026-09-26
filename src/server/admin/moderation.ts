@@ -115,7 +115,11 @@ async function loadCases(
     reports: reports
       .filter((report) => report.shoutoutId === row.id)
       .map(({ shoutoutId: _shoutoutId, ...report }) => report),
-    shoutout: { ...toFeedItem(row, "", new Date()), canModify: false, canReport: false },
+    shoutout: {
+      ...toFeedItem(row, "", new Date(), { admin: true }),
+      canModify: false,
+      canReport: false,
+    },
   }));
 }
 

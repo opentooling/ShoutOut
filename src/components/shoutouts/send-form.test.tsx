@@ -99,6 +99,41 @@ describe("SendShoutoutForm", () => {
     expect(screen.getByRole("combobox")).toBeDisabled();
   });
 
+  it("adds points, shows what they cost and blocks sending when there aren't enough", async () => {
+    const action = setup({ points: { remaining: 30, choices: [5, 10, 25] } });
+    expect(
+      screen.getByText(
+        "You have 5 shoutouts left this quarter. You have 30 points to give this quarter.",
+      ),
+    ).toBeInTheDocument();
+    await pick("Bob Baker");
+    await userEvent.click(screen.getByText("🎁 10"));
+    expect(screen.getByRole("article")).toHaveTextContent("🎁 10 points");
+    expect(screen.getByText(/It gives 10 of your 30 points\./)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText("🎁 25"));
+    await pick("Carol Chen");
+    expect(screen.getByRole("article")).toHaveTextContent("🎁 25 points each");
+    expect(screen.getByText(/Not enough points left for everyone/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send shoutout" })).toBeDisabled();
+
+    await userEvent.click(screen.getByText("🎁 10"));
+    await userEvent.click(screen.getByText("Excellence"));
+    await userEvent.type(screen.getByLabelText("Say thanks"), "Thanks");
+    await userEvent.click(screen.getByRole("button", { name: "Send shoutout" }));
+    expect(action.mock.calls[0][1].get("points")).toBe("10");
+  });
+
+  it("has no shoutout limit when the budget is off", async () => {
+    setup({ remaining: null, maxRecipients: 2 });
+    expect(screen.queryByText(/shoutouts left/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: /Add points/ })).not.toBeInTheDocument();
+    await pick("Bob Baker");
+    await pick("Carol Chen");
+    expect(screen.getByRole("combobox")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Send shoutout" })).toBeEnabled();
+  });
+
   it("copes with no cards and disables sending over budget", async () => {
     setup({ cards: [], remaining: 0 });
     expect(screen.queryByRole("article")).not.toBeInTheDocument();

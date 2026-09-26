@@ -49,6 +49,17 @@ describe("AboutPage", () => {
     );
   });
 
+  it("explains points, and leaves out the budget section when there is no budget", async () => {
+    vi.stubEnv("SHOUTOUT_BUDGET_ENABLED", "false");
+    vi.stubEnv("SHOUTOUT_POINTS_ENABLED", "true");
+    vi.stubEnv("SHOUTOUT_POINTS_QUARTERLY_BUDGET", "150");
+    render(await AboutPage());
+    expect(screen.queryByRole("heading", { name: /Why you only get/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Points: a little extra/ })).toBeInTheDocument();
+    expect(screen.getByText(/from 150 you can give each quarter/)).toBeInTheDocument();
+    expect(screen.getByText(/gives you the budget and any points back/)).toBeInTheDocument();
+  });
+
   it("is readable signed out, with its own header and a sign-in call to action", async () => {
     auth.mockResolvedValue(null);
     render(await AboutPage());

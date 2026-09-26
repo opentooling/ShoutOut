@@ -8,6 +8,8 @@ const exportLeaderboardsCsv = vi.fn(async () => "period\r\n");
 vi.mock("@/auth", () => ({ auth }));
 vi.mock("@/lib/db", () => ({ getDb: () => ({ db: true }) }));
 vi.mock("@/server/admin/audit", () => ({ recordAudit }));
+const exportPointsCsv = vi.fn(async () => "name,points_balance\r\n");
+vi.mock("@/server/admin/points", () => ({ exportPointsCsv }));
 vi.mock("@/server/admin/export", () => ({
   exportShoutoutsCsv,
   exportPeopleCsv,
@@ -35,6 +37,17 @@ describe("GET /admin/export/[kind]", () => {
     auth.mockResolvedValue({ user: { id: "u", roles: ["shoutout-user"] } });
     expect((await call("people")).status).toBe(404);
     expect(exportPeopleCsv).not.toHaveBeenCalled();
+  });
+
+  it("exports points balances", async () => {
+    const response = await call("points");
+    expect(await response.text()).toBe("name,points_balance\r\n");
+    expect(response.headers.get("content-disposition")).toMatch(/shoutout-points-/);
+    expect(exportPointsCsv).toHaveBeenCalledWith({ db: true });
+    expect(recordAudit).toHaveBeenCalledWith(
+      { db: true },
+      expect.objectContaining({ targetId: "points", details: { kind: "points" } }),
+    );
   });
 
   it("404s for unknown exports", async () => {

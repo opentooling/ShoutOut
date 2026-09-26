@@ -16,6 +16,14 @@ describe("BudgetMeter", () => {
     expect(bar.firstElementChild).toHaveClass("bg-sunny");
   });
 
+  it("can show points left to give", () => {
+    render(<BudgetMeter unit="points" allowance={100} remaining={40} resetsAt={resetsAt} />);
+    expect(screen.getByText(/of 100 points left to give/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("progressbar", { name: "Points left to give this quarter" }),
+    ).toHaveAttribute("aria-valuenow", "40");
+  });
+
   it("turns coral when empty and copes with a zero allowance", () => {
     const { rerender } = render(<BudgetMeter allowance={20} remaining={0} resetsAt={resetsAt} />);
     expect(screen.getByRole("progressbar").firstElementChild).toHaveClass("bg-coral");

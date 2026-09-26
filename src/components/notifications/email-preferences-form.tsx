@@ -46,10 +46,10 @@ export function EmailPreferencesForm({
             className={checkbox}
           />
           <span>
-            <span className="font-bold">Remind me before my shoutouts expire</span>
+            <span className="font-bold">Remind me before my quarterly budget resets</span>
             <span className="block text-sm text-muted">
-              One email {formatDayCount(reminderDays)} before the quarter ends, if I still have
-              shoutouts left.
+              One email {formatDayCount(reminderDays)} before the quarter ends, if I still have some
+              left to give.
             </span>
           </span>
         </label>

@@ -1,12 +1,16 @@
 import type { CardTone } from "@/components/cards/designs";
 import type { Db } from "@/lib/db";
 import { sql } from "@/lib/sql";
-import { getBudget } from "../shoutouts/budget";
+import type { AppConfig } from "@/lib/config";
+import { getBudget, getPointsBudget } from "../shoutouts/budget";
 import { quarterBounds } from "../shoutouts/quarter";
 import type { ModerationStatus, Visibility } from "../types";
 import type { EmailConfig } from "./email-config";
 import type { OutboxItem } from "./outbox";
 import { budgetReminderEmail, shoutoutReceivedEmail, type EmailContent } from "./templates";
+
+/** The budgets in use, for the reminder's numbers. */
+export type BudgetSettings = Pick<AppConfig, "budgetEnabled" | "quarterlyBudget" | "points">;
 
 /** A ready-to-send email, or why the notification no longer applies. */
 export type Prepared = { to: string; content: EmailContent } | { skip: string };
@@ -41,12 +45,13 @@ async function prepareShoutout(
     valueName: string;
     message: string;
     visibility: Visibility;
+    points: number;
     moderationStatus: ModerationStatus;
     deleted: boolean;
     recipientCount: number;
   }>(sql`
     SELECT sender.name AS "senderName", c.title AS "cardTitle", c.tagline AS "cardTagline",
-      c.tone AS "cardTone", v.name AS "valueName", s.message, s.visibility,
+      c.tone AS "cardTone", v.name AS "valueName", s.message, s.visibility, s.points,
       s.moderation_status AS "moderationStatus", s.deleted_at IS NOT NULL AS deleted,
       (SELECT COUNT(*)::int FROM shoutout_recipients r WHERE r.shoutout_id = s.id) AS "recipientCount"
     FROM shoutouts s
@@ -72,6 +77,7 @@ async function prepareShoutout(
         message: shoutout.message,
         visibility: shoutout.visibility,
         otherRecipients: shoutout.recipientCount - 1,
+        points: shoutout.points,
       },
       config.appUrl,
     ),
@@ -83,23 +89,35 @@ async function prepareReminder(
   item: OutboxItem,
   recipient: Recipient,
   config: EmailConfig,
-  allowance: number,
+  budgets: BudgetSettings,
   now: Date,
 ): Promise<Prepared> {
   if (!recipient.emailBudgetReminder) return { skip: "turned off budget reminders" };
   // A reminder still waiting after its quarter ended (e.g. a long mail outage) is pointless.
   if (quarterBounds(item.createdAt).end <= now) return { skip: "the quarter has ended" };
-  const budget = await getBudget(db, item.userId, allowance, now);
-  if (budget.remaining === 0) return { skip: "budget already used" };
+  if (!budgets.budgetEnabled && !budgets.points.enabled) return { skip: "no budget in use" };
+  const [shoutouts, points] = await Promise.all([
+    budgets.budgetEnabled ? getBudget(db, item.userId, budgets.quarterlyBudget, now) : null,
+    budgets.points.enabled
+      ? getPointsBudget(db, item.userId, budgets.points.quarterlyBudget, now)
+      : null,
+  ]);
+  // Points go with a shoutout, so with no shoutouts left there is nothing to remind about.
+  const nothingLeft = shoutouts ? shoutouts.remaining === 0 : points!.remaining === 0;
+  if (nothingLeft) return { skip: "budget already used" };
+  const left = (budget: typeof shoutouts) =>
+    budget && budget.remaining > 0
+      ? { remaining: budget.remaining, allowance: budget.allowance }
+      : null;
   return {
     to: recipient.email,
     content: budgetReminderEmail(
       {
         recipientId: item.userId,
         recipientName: recipient.name,
-        remaining: budget.remaining,
-        allowance,
-        resetsAt: budget.resetsAt,
+        shoutouts: left(shoutouts),
+        points: left(points),
+        resetsAt: quarterBounds(now).end,
         reminderDays: config.reminderDays,
       },
       config.appUrl,
@@ -116,12 +134,12 @@ export async function prepareEmail(
   db: Db,
   item: OutboxItem,
   config: EmailConfig,
-  allowance: number,
+  budgets: BudgetSettings,
   now: Date,
 ): Promise<Prepared> {
   const recipient = await loadRecipient(db, item.userId);
   if (!recipient?.active) return { skip: "person is no longer active" };
   return item.kind === "SHOUTOUT_RECEIVED"
     ? prepareShoutout(db, item, recipient, config)
-    : prepareReminder(db, item, recipient, config, allowance, now);
+    : prepareReminder(db, item, recipient, config, budgets, now);
 }

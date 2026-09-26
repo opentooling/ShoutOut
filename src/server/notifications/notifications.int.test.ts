@@ -14,6 +14,7 @@ import { deliverBatch, MAX_ATTEMPTS, runSender, type SenderDeps } from "./worker
 
 const now = new Date("2026-09-17T12:00:00Z");
 const MINUTE = 60_000;
+const POINTS_OFF = { enabled: false, quarterlyBudget: 100, choices: [5, 10] };
 const at = (ms: number) => new Date(now.getTime() + ms);
 
 const config: EmailConfig = {
@@ -48,7 +49,7 @@ describe("email notifications (postgres)", () => {
     const deps: SenderDeps = {
       db,
       config,
-      allowance: 5,
+      budgets: { budgetEnabled: true, quarterlyBudget: 5, points: POINTS_OFF },
       mailer: {
         send: vi.fn(async (to: string, content: EmailContent) => {
           sent.push({ to, content });
@@ -274,6 +275,90 @@ describe("email notifications (postgres)", () => {
       for (const row of rows) {
         expect(row).toMatchObject({ status: "SKIPPED", lastError: "the quarter has ended" });
       }
+    });
+  });
+
+  describe("with points", () => {
+    const POINTS_ON = { enabled: true, quarterlyBudget: 50, choices: [5, 10] };
+
+    it("tells recipients about the points they got", async () => {
+      const { alice, bob } = await people();
+      await sendShoutout(
+        db,
+        alice.id,
+        {
+          recipientIds: [bob.id],
+          cardId: CARD_ID,
+          valueId: VALUE_ID,
+          message: "Hi",
+          visibility: "PUBLIC",
+          points: 10,
+        },
+        { quarterlyBudget: 5, points: POINTS_ON, emailDelayMs: 0 },
+        now,
+      );
+      const { deps, sent } = setup();
+      await deliverBatch(deps, now);
+      expect(sent[0].content.text).toContain("Alice Andrews also gave you 10 points.");
+    });
+
+    it("reminds about points when only points are in use", async () => {
+      const { alice, bob, carol } = await people();
+      await sendShoutout(
+        db,
+        alice.id,
+        {
+          recipientIds: [bob.id],
+          cardId: CARD_ID,
+          valueId: VALUE_ID,
+          message: "Hi",
+          visibility: "PUBLIC",
+          points: 10,
+        },
+        { quarterlyBudget: 5, points: POINTS_ON },
+        now,
+      );
+      // Carol gives all 20 of hers (the reminder below uses a 20-point budget).
+      for (const recipient of [alice.id, bob.id]) {
+        await sendShoutout(
+          db,
+          carol.id,
+          {
+            recipientIds: [recipient],
+            cardId: CARD_ID,
+            valueId: VALUE_ID,
+            message: "Hi",
+            visibility: "PUBLIC",
+            points: 10,
+          },
+          { quarterlyBudget: 5, points: POINTS_ON, budgetEnabled: false },
+          now,
+        );
+      }
+      const { deps, sent } = setup();
+      deps.budgets = {
+        budgetEnabled: false,
+        quarterlyBudget: 5,
+        points: { ...POINTS_ON, quarterlyBudget: 20 },
+      };
+      expect(await runSender(deps, { now: () => now })).toEqual({ sent: 2, skipped: 1, failed: 0 });
+      const toAlice = sent.find((email) => email.to === alice.email)!;
+      expect(toAlice.content.subject).toBe("You have 10 points left to give this quarter");
+      const toBob = sent.find((email) => email.to === bob.email)!;
+      expect(toBob.content.subject).toBe("You have 20 points left to give this quarter");
+    });
+
+    it("queues no reminders, and drops queued ones, when neither budget is in use", async () => {
+      await people();
+      const { deps, sent } = setup();
+      deps.budgets = { budgetEnabled: false, quarterlyBudget: 5, points: POINTS_OFF };
+      expect(await runSender(deps, { now: () => now })).toEqual({ sent: 0, skipped: 0, failed: 0 });
+      expect(await enqueueBudgetReminders(db, now, 14)).toBe(3);
+      expect(await runSender(deps, { now: () => now, housekeeping: false })).toMatchObject({
+        skipped: 3,
+      });
+      expect(sent).toEqual([]);
+      expect((await outbox()).every((row) => row.lastError === "no budget in use")).toBe(true);
     });
   });
 

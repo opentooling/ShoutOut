@@ -3,21 +3,33 @@ import type { Db } from "@/lib/db";
 import { sql } from "@/lib/sql";
 import { DomainError } from "../errors";
 import { enqueueShoutoutEmails } from "../notifications/outbox";
-import { getBudget } from "./budget";
+import { getBudget, getPointsBudget } from "./budget";
 import { SHOUTOUT_COLUMNS, type ShoutoutRecord } from "./record";
 import type { SendShoutoutInput } from "./validation";
 
 export async function sendShoutout(
   db: Db,
   senderId: string,
-  input: SendShoutoutInput,
-  config: Pick<AppConfig, "quarterlyBudget"> & {
-    /** Queue emails to the recipients this long after sending; null or absent when email is off. */
-    emailDelayMs?: number | null;
-  },
+  input: Omit<SendShoutoutInput, "points"> & { points?: number },
+  config: Pick<AppConfig, "quarterlyBudget"> &
+    Partial<Pick<AppConfig, "budgetEnabled" | "points">> & {
+      /** Queue emails to the recipients this long after sending; null or absent when email is off. */
+      emailDelayMs?: number | null;
+    },
   now = new Date(),
 ): Promise<ShoutoutRecord> {
   const recipientIds = [...new Set(input.recipientIds)];
+  const points = input.points ?? 0;
+  if (points > 0 && !config.points?.enabled) {
+    throw new DomainError("INVALID_POINTS", "Points can't be given", "points");
+  }
+  if (points > 0 && !config.points!.choices.includes(points)) {
+    throw new DomainError(
+      "INVALID_POINTS",
+      `Pick one of ${config.points!.choices.join(", ")} points`,
+      "points",
+    );
+  }
   if (recipientIds.includes(senderId)) {
     throw new DomainError(
       "SELF_RECIPIENT",
@@ -47,20 +59,33 @@ export async function sendShoutout(
       );
     }
 
-    const budget = await getBudget(tx, senderId, config.quarterlyBudget, now);
-    if (recipientIds.length > budget.remaining) {
-      throw new DomainError(
-        "BUDGET_EXCEEDED",
-        budget.remaining === 0
-          ? "You've used all your shoutouts this quarter"
-          : `You only have ${budget.remaining} shoutout${budget.remaining === 1 ? "" : "s"} left this quarter`,
-        "recipientIds",
-      );
+    if (config.budgetEnabled ?? true) {
+      const budget = await getBudget(tx, senderId, config.quarterlyBudget, now);
+      if (recipientIds.length > budget.remaining) {
+        throw new DomainError(
+          "BUDGET_EXCEEDED",
+          budget.remaining === 0
+            ? "You've used all your shoutouts this quarter"
+            : `You only have ${budget.remaining} shoutout${budget.remaining === 1 ? "" : "s"} left this quarter`,
+          "recipientIds",
+        );
+      }
+    }
+    if (points > 0) {
+      const pointsBudget = await getPointsBudget(tx, senderId, config.points!.quarterlyBudget, now);
+      const cost = points * recipientIds.length;
+      if (cost > pointsBudget.remaining) {
+        throw new DomainError(
+          "POINTS_EXCEEDED",
+          `That needs ${cost} points, but you only have ${pointsBudget.remaining} left this quarter`,
+          "points",
+        );
+      }
     }
 
     const shoutout = (await tx.one<ShoutoutRecord>(sql`
-      INSERT INTO shoutouts (sender_id, card_id, value_id, message, visibility, created_at, updated_at)
-      VALUES (${senderId}, ${input.cardId}, ${input.valueId}, ${input.message}, ${input.visibility}, ${now}, ${now})
+      INSERT INTO shoutouts (sender_id, card_id, value_id, message, visibility, points, created_at, updated_at)
+      VALUES (${senderId}, ${input.cardId}, ${input.valueId}, ${input.message}, ${input.visibility}, ${points}, ${now}, ${now})
       RETURNING ${SHOUTOUT_COLUMNS}`))!;
     await tx.execute(sql`
       INSERT INTO shoutout_recipients (shoutout_id, user_id)

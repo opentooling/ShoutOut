@@ -70,8 +70,16 @@ spec:
                   key: keycloak-client-secret
             - name: AUTH_KEYCLOAK_ISSUER
               value: {{ include "shoutout.auth.issuer" . | quote }}
+            - name: SHOUTOUT_BUDGET_ENABLED
+              value: {{ .Values.config.quarterlyBudgetEnabled | quote }}
             - name: SHOUTOUT_QUARTERLY_BUDGET
               value: {{ .Values.config.quarterlyBudget | int | quote }}
+            - name: SHOUTOUT_POINTS_ENABLED
+              value: {{ .Values.config.points.enabled | quote }}
+            - name: SHOUTOUT_POINTS_QUARTERLY_BUDGET
+              value: {{ .Values.config.points.quarterlyBudget | int | quote }}
+            - name: SHOUTOUT_POINTS_CHOICES
+              value: {{ join "," .Values.config.points.choices | quote }}
             - name: SHOUTOUT_MAX_RECIPIENTS
               value: {{ .Values.config.maxRecipients | int | quote }}
             - name: SHOUTOUT_ANALYTICS_VISIBILITY

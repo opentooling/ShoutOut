@@ -11,9 +11,12 @@ import { Avatar } from "@/components/ui/avatar";
 import { buttonClasses } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { getDb } from "@/lib/db";
+import { loadConfig } from "@/lib/config";
 import { getThemePreference } from "@/lib/theme-server";
+import { isAdmin } from "@/server/auth/roles";
 import { activeEmailConfig } from "@/server/notifications/email-config";
 import { getEmailPreferences } from "@/server/notifications/preferences";
+import { getPointsBalance } from "@/server/shoutouts/budget";
 import { getProfile, listProfileShoutouts, type ProfileTab } from "@/server/users/profile";
 
 export const metadata: Metadata = { title: "Profile" };
@@ -33,8 +36,15 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
   if (!profile) {
     notFound();
   }
-  const page = await listProfileShoutouts(db, user.id, id, tab, { cursor, now });
+  const page = await listProfileShoutouts(db, user.id, id, tab, {
+    cursor,
+    now,
+    admin: isAdmin(user.roles),
+  });
   const { person } = profile;
+  // Points are private: only you see your own balance.
+  const pointsBalance =
+    profile.isSelf && loadConfig().points.enabled ? await getPointsBalance(db, user.id, now) : null;
   const emailConfig = profile.isSelf ? activeEmailConfig() : null;
   const firstName = person.name.split(" ")[0];
 
@@ -68,13 +78,22 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
               </Link>
             )}
           </div>
-          <dl className="mt-6 grid grid-cols-2 gap-3">
+          <dl className={cn("mt-6 grid grid-cols-2 gap-3", pointsBalance && "sm:grid-cols-3")}>
             {tabs.map((t) => (
               <div key={t.key} className="rounded-2xl bg-surface-muted p-4 text-center">
                 <dt className="text-sm font-bold text-muted">Shoutouts {t.label.toLowerCase()}</dt>
                 <dd className="font-display text-3xl font-semibold">{t.count}</dd>
               </div>
             ))}
+            {pointsBalance && (
+              <div className="col-span-2 rounded-2xl bg-sunny-soft p-4 text-center sm:col-span-1">
+                <dt className="text-sm font-bold text-on-sunny">Points received</dt>
+                <dd className="font-display text-3xl font-semibold">{pointsBalance.balance}</dd>
+                <dd className="text-xs text-on-sunny">
+                  {pointsBalance.receivedThisQuarter} this quarter · only you see this
+                </dd>
+              </div>
+            )}
           </dl>
           {profile.topValues.length > 0 && (
             <div className="mt-6">

@@ -16,8 +16,16 @@ const details = {
   visibility,
 };
 
+/** Points per recipient; empty means none. Which amounts are allowed is checked when sending. */
+const points = z.coerce
+  .number({ error: "Pick an amount of points" })
+  .int("Pick an amount of points")
+  .min(0, "Pick an amount of points")
+  .default(0);
+
 export function sendShoutoutSchema(maxRecipients: number) {
   return z.object({
+    points,
     recipientIds: z
       .array(z.string().min(1))
       .transform((ids) => [...new Set(ids)])
