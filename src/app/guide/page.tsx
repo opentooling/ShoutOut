@@ -5,7 +5,13 @@ import { auth } from "@/auth";
 import { RichText } from "@/components/guide/rich-text";
 import { SiteHeader } from "@/components/layout/site-header";
 import screenshots from "@/content/guide-screenshots.json";
-import { GUIDE_INTRO, GUIDE_SECTIONS, GUIDE_TITLE, type GuideSection } from "@/content/user-guide";
+import {
+  GUIDE_INTRO,
+  GUIDE_TITLE,
+  guideSections,
+  type ResolvedGuideSection,
+} from "@/content/user-guide";
+import { loadConfig } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: "User guide",
@@ -14,7 +20,7 @@ export const metadata: Metadata = {
 
 const SIZES: Record<string, { width: number; height: number } | undefined> = screenshots;
 
-function Section({ section }: { section: GuideSection }) {
+function Section({ section }: { section: ResolvedGuideSection }) {
   const shot = section.screenshot;
   const size = SIZES[shot.file];
   return (
@@ -72,7 +78,7 @@ function Section({ section }: { section: GuideSection }) {
   );
 }
 
-function Contents({ sections }: { sections: GuideSection[] }) {
+function Contents({ sections }: { sections: ResolvedGuideSection[] }) {
   return (
     <ol className="mt-2 space-y-1">
       {sections.map((s) => (
@@ -88,8 +94,11 @@ function Contents({ sections }: { sections: GuideSection[] }) {
 
 export default async function GuidePage() {
   const session = await auth();
-  const everyone = GUIDE_SECTIONS.filter((s) => s.audience === "everyone");
-  const admins = GUIDE_SECTIONS.filter((s) => s.audience === "admins");
+  // Only the features this installation uses.
+  const config = loadConfig();
+  const sections = guideSections({ points: config.points.enabled, budget: config.budgetEnabled });
+  const everyone = sections.filter((s) => s.audience === "everyone");
+  const admins = sections.filter((s) => s.audience === "admins");
 
   return (
     <>

@@ -33,9 +33,18 @@ test.describe("points", () => {
     await expect(feedItem(bob, message)).toBeVisible();
     await expect(feedItem(bob, message)).not.toContainText("points");
 
+    // Everyone sees the points ranking, but only in order: no totals.
+    await bob.goto("/leaderboard?period=all");
+    const pointsBoard = bob.getByRole("region", { name: "Most points received" });
+    await expect(pointsBoard.getByRole("listitem").first()).toHaveAccessibleName(/^Rank 1: [^,]+$/);
+
     const alice = await browser.newPage();
     await signInAs(alice, "alice");
     await expect(feedItem(alice, message)).toContainText("🎁 5 points");
+    await alice.goto("/leaderboard?period=all");
+    await expect(
+      alice.getByRole("region", { name: "Most points received" }).getByRole("listitem").first(),
+    ).toHaveAccessibleName(/^Rank 1: .+, \d+ points received$/);
     await alice.goto("/admin/points");
     await expect(alice.getByRole("row", { name: /Grace Gupta/ })).toBeVisible();
     await expect(alice.getByRole("link", { name: "Download points.csv" })).toBeVisible();

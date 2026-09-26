@@ -24,7 +24,7 @@ describe("LeaderboardBoard", () => {
         viewerId="u3"
       />,
     );
-    expect(screen.getByRole("heading", { name: "Most recognised" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Most recognised" })).toBeInTheDocument();
     const rows = within(screen.getAllByRole("list")[0]).getAllByRole("listitem");
     expect(rows[0]).toHaveAccessibleName("Rank 1: Bob Baker, 5 shoutouts");
     expect(within(rows[0]).getByRole("img", { name: "Rank 1" })).toHaveTextContent("🥇");
@@ -38,6 +38,25 @@ describe("LeaderboardBoard", () => {
     expect(screen.getByRole("listitem", { name: "Rank 12: Me Myself, 0 shoutouts" })).toHaveClass(
       "bg-sunny-soft",
     );
+  });
+
+  it("can show ranks only, without numbers or bars", () => {
+    render(
+      <LeaderboardBoard
+        title="Most points received"
+        description="In order"
+        unit="points received"
+        board={board}
+        viewerId="u1"
+        counts={false}
+      />,
+    );
+    const rows = within(screen.getAllByRole("list")[0]).getAllByRole("listitem");
+    expect(rows[0]).toHaveAccessibleName("Rank 1: Bob Baker");
+    expect(rows[0]).not.toHaveTextContent("5");
+    expect(rows[3]).toHaveTextContent(/^4EEErin Evans$/); // rank, avatar initials, name: no count
+    expect(document.querySelector(".bg-chart-mark")).toBeNull();
+    expect(screen.getByRole("listitem", { name: "Rank 12: Me Myself" })).toBeInTheDocument();
   });
 
   it("shows values without links and an empty state", () => {

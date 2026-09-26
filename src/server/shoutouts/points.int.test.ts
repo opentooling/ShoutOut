@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { sql } from "@/lib/sql";
 import { useTestDb } from "../../../test/db";
 import { CARD_ID, createUser, VALUE_ID } from "../../../test/factories";
+import { exportLeaderboardsCsv } from "../admin/export";
 import { exportPointsCsv, listPointsBalances } from "../admin/points";
+import { ranksOnly, topPointsRecipients } from "../insights/leaderboard";
+import { periodRange } from "../insights/periods";
 import { getPointsBalance, getPointsBudget } from "./budget";
 import { getVisibleShoutout, listFeed } from "./feed";
 import { deleteShoutout } from "./manage";
@@ -146,6 +149,44 @@ describe("points (postgres)", () => {
       );
       expect(csv[1]).toBe(`Bob,${bob.email},true,35,10,0`);
       expect(csv).toHaveLength(4);
+    });
+  });
+
+  describe("leaderboard", () => {
+    it("ranks people by points received in the period, visible shoutouts only", async () => {
+      const { alice, bob, carol, dave } = await people();
+      await send(alice.id, [bob.id, carol.id], 10);
+      await send(dave.id, [carol.id], 25);
+      await send(alice.id, [dave.id], 25, { at: lastQuarter });
+      const hidden = await send(dave.id, [bob.id], 25);
+      await db.execute(
+        sql`UPDATE shoutouts SET moderation_status = 'HIDDEN' WHERE id = ${hidden.id}`,
+      );
+      await send(carol.id, [alice.id], 0);
+
+      const quarter = await topPointsRecipients(db, periodRange("quarter", now), 1, bob.id);
+      expect(quarter.entries).toEqual([{ id: carol.id, name: "Carol", count: 35, rank: 1 }]);
+      expect(quarter.viewer).toEqual({ id: bob.id, name: "Bob", count: 10, rank: 2 });
+      expect(quarter.max).toBe(35);
+
+      const all = await topPointsRecipients(db, periodRange("all", now));
+      expect(all.entries.map((e) => [e.name, e.count])).toEqual([
+        ["Carol", 35],
+        ["Dave", 25],
+        ["Bob", 10],
+      ]);
+
+      const hiddenCounts = ranksOnly(quarter);
+      expect(hiddenCounts).toEqual({
+        entries: [{ id: carol.id, name: "Carol", count: 0, rank: 1 }],
+        viewer: { id: bob.id, name: "Bob", count: 0, rank: 2 },
+        max: 0,
+      });
+      expect(ranksOnly({ entries: [], viewer: null, max: 0 }).viewer).toBeNull();
+
+      const csv = (await exportLeaderboardsCsv(db, "all", now, { points: true })).trim();
+      expect(csv).toContain("All time,Most points received,1,Carol,35,points received");
+      expect(await exportLeaderboardsCsv(db, "all", now)).not.toContain("points received");
     });
   });
 

@@ -4,7 +4,7 @@
 
 Everything you need to recognise colleagues with ShoutOut: signing in, sending shoutouts, joining in, and finding recognition. The last part covers the admin tools.
 
-Also available in the app at **/guide**.
+Also available in the app at **/guide**, which shows only the features your company uses. Parts marked *If your company…* depend on those settings.
 
 ## Contents
 
@@ -24,6 +24,7 @@ Also available in the app at **/guide**.
 - [Moderation](#admin-moderation) (admins)
 - [Cards and values](#admin-cards-and-values) (admins)
 - [Exports and the audit log](#admin-export) (admins)
+- [Points balances](#admin-points) (admins)
 - [Analytics](#analytics) (admins)
 
 ## Using ShoutOut
@@ -44,7 +45,7 @@ ShoutOut uses your normal work account, so there is nothing new to remember. Eve
 
 ### The feed
 
-The feed is your home page. It shows the latest shoutouts you can see, newest first, with your remaining budget and this month's most recognised colleagues alongside.
+The feed is your home page. It shows the latest shoutouts you can see, newest first, with this month's most recognised colleagues alongside.
 
 - Each shoutout shows who it is for, who sent it, the card, the company value it celebrates and the message.
 - Choose **Show older shoutouts** at the bottom to go further back.
@@ -75,13 +76,13 @@ A shoutout is a short, specific thank-you on a card, tied to one of our company 
 
 ### Adding points
 
-If your company uses points, you can add some to a shoutout for help that went well beyond the everyday. Points are always optional: the message matters most.
+*If your company uses points.* You can add points to a shoutout for help that went well beyond the everyday. Points are always optional: the message matters most.
 
 1. While sending a shoutout, pick an amount under **Add points?**, or leave it at **No points**.
 2. Everyone you thank gets that amount, so 10 points to three people uses 30 of your points. Amounts you can't afford are greyed out.
 3. Send it as usual. The points show on the shoutout for you, the people you thanked and admins; nobody else sees them.
 
-- You get a points budget each quarter (100 unless your company changed it), shown under your shoutout budget on the feed. Unused points don't carry over.
+- You get a points budget each quarter (100 unless your company changed it), shown on the feed. Unused points don't carry over.
 - Points you receive build up: see your total on the feed and on your profile. Only you and admins can see it.
 - Deleting a shoutout within 24 hours gives the points back.
 
@@ -91,7 +92,7 @@ If your company uses points, you can add some to a shoutout for help that went w
 
 ### Your quarterly budget
 
-Unless your company has turned it off, everyone gets a set number of shoutouts each calendar quarter (20 unless your company changed it). Each person you thank uses one, so a shoutout to three people uses three.
+*If your company limits shoutouts per quarter.* Everyone gets a set number of shoutouts each calendar quarter (20 unless your company changed it). Each person you thank uses one, so a shoutout to three people uses three.
 
 - The meter on the feed shows what you have left and when it resets.
 - The budget resets on the first day of each quarter; unused shoutouts don't carry over.
@@ -103,7 +104,7 @@ Unless your company has turned it off, everyone gets a set number of shoutouts e
 
 ### Reactions and comments
 
-Join in on any shoutout you can see. Reactions and comments don't use your budget.
+Join in on any shoutout you can see. Reactions and comments are always free.
 
 1. Choose an emoji under a shoutout to react. Choose it again to take your reaction back.
 2. Choose **☺ +** to pick a different emoji.
@@ -119,9 +120,11 @@ Made a typo or picked the wrong card? You can change or remove your own shoutout
 
 1. Find the shoutout in the feed.
 2. Choose **Edit** to change the card, value, message or visibility. The recipients can't be changed; delete it and send a new one instead.
-3. Choose **Delete** to remove it. The shoutouts it used go back into your budget.
+3. Choose **Delete** to remove it.
 
 - After 24 hours the Edit and Delete buttons disappear.
+- *If your company limits shoutouts per quarter:* Deleting gives back the shoutouts it used from your budget.
+- *If your company uses points:* Deleting gives back any points it included.
 
 ![Your own recent shoutout showing the Edit and Delete buttons](../public/guide/edit-delete.jpg)
 
@@ -161,6 +164,7 @@ See who has been recognised most, who recognises others most, and which values s
 - Your own row is highlighted, even if you're outside the top ten.
 - Private shoutouts count too, but only as numbers.
 - It's a way to spot who might be overlooked, not a competition.
+- *If your company uses points:* **Most points received** ranks people by the points they got. Everyone sees the order; only admins see the totals.
 
 ![The leaderboard with Most recognised, Top recognisers and Top values](../public/guide/leaderboard.jpg)
 
@@ -188,7 +192,7 @@ Use the switch at the top right to choose light, dark, or match your device. On 
 
 ### Email notifications
 
-If your company has turned email on, ShoutOut emails you when someone sends you a shoutout. Once a quarter, about two weeks before the budget resets, it also reminds you if you still have shoutouts left. Both are on unless you turn them off.
+If your company has turned email on, ShoutOut emails you when someone sends you a shoutout. Once a quarter, about two weeks before the quarter ends, it also reminds you if you still have some of your budget left to give. Both are on unless you turn them off.
 
 1. Choose your name or picture at the top right to open **your profile**.
 2. Under **Email me**, untick the emails you don't want.
@@ -239,6 +243,18 @@ Download CSV files of all shoutouts, a per-person summary, or the leaderboards f
 - Private messages are shown as [private] in the shoutouts export.
 
 ![The admin export tab with download buttons for shoutouts, people and leaderboards](../public/guide/admin-export.jpg)
+
+<a id="admin-points"></a>
+
+### Points balances
+
+*If your company uses points.* **Admin → Points** lists everyone who has given or received points: their balance, what they received this quarter and what they gave. Nothing can be spent yet, so a balance is everything that person has received.
+
+- Choose **Download points.csv** for a spreadsheet, e.g. to hand out rewards.
+- Points from a shoutout that was deleted, or hidden after a report, don't count.
+- Only admins see other people's totals; everyone else sees their own.
+
+![The admin Points tab listing people with their points balance, received and given this quarter](../public/guide/admin-points.jpg)
 
 <a id="analytics"></a>
 

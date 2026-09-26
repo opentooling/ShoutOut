@@ -1,10 +1,18 @@
 /**
  * Captures the user guide screenshots into public/guide/ and records their
  * sizes in src/content/guide-screenshots.json. Run against a deployment with
- * demo data (deploy/local/seed-demo.sh) and email turned on:
+ * demo data (deploy/local/seed-demo.sh) and email turned on.
  *
- *   npm run guide:screenshots
- *   npx playwright test -c playwright.guide.config.ts --grep "email settings" && npm run guide:docs
+ * The guide shows points only when points mode is on, so the general screens are
+ * captured with it off and the points screens with it on:
+ *
+ *   helm -n shoutout upgrade shoutout deploy/helm/shoutout --reuse-values --set config.points.enabled=false
+ *   npx playwright test -c playwright.guide.config.ts --grep-invert "points screens"
+ *   helm -n shoutout upgrade shoutout deploy/helm/shoutout --reuse-values --set config.points.enabled=true
+ *   npx playwright test -c playwright.guide.config.ts --grep "points screens"
+ *   npm run guide:docs
+ *
+ * (Wait for the app to restart after each upgrade.) Capture single screens with --grep.
  *
  * It sends, reports and removes a couple of shoutouts to show those screens,
  * and cleans up after itself (deleting within 24 hours refunds the budget).
@@ -138,10 +146,6 @@ test("everyday screens", async ({ page }) => {
     "Thanks for walking me through the new deploy pipeline. You saved me a whole afternoon of guesswork.";
   await fillShoutout(page, message);
   await shot(page, "send.jpg", page.locator("main"), 1400);
-  // Points mode is on in the local deployment.
-  await choose(page, "🎁 10");
-  await shot(page, "points.jpg", page.locator("fieldset", { hasText: "Add points?" }));
-  await choose(page, "No points");
 
   // Send it to show the Edit and Delete buttons, then delete it (refunds the budget).
   await page.getByRole("button", { name: "Send shoutout" }).click();
@@ -190,6 +194,22 @@ test("email settings", async ({ page }) => {
     "email-settings.jpg",
     page.locator("section", { has: page.locator("#email-settings") }),
   );
+});
+
+// Needs points mode on; everything else is captured with it off (see the top of this file).
+test("points screens", async ({ browser }) => {
+  const bob = await browser.newPage();
+  await signInAs(bob, "bob");
+  await setTheme(bob, "light");
+  await fillShoutout(bob, "Thanks for covering my on-call shift at short notice.");
+  await choose(bob, "🎁 10");
+  await shot(bob, "points.jpg", bob.locator("fieldset", { hasText: "Add points?" }));
+
+  const alice = await browser.newPage();
+  await signInAs(alice, "alice");
+  await setTheme(alice, "light");
+  await alice.goto("/admin/points");
+  await shot(alice, "admin-points.jpg", alice.locator("main"));
 });
 
 test("admin screens", async ({ browser }) => {

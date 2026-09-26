@@ -1,6 +1,12 @@
 import type { Db } from "@/lib/db";
 import { sql } from "@/lib/sql";
-import { rangeSql, topRecipients, topSenders, topValues } from "../insights/leaderboard";
+import {
+  rangeSql,
+  topPointsRecipients,
+  topRecipients,
+  topSenders,
+  topValues,
+} from "../insights/leaderboard";
 import type { DateRange, LeaderboardPeriod } from "../insights/periods";
 import { PERIOD_LABELS, periodRange } from "../insights/periods";
 import { toCsv } from "./csv";
@@ -101,17 +107,19 @@ export async function exportPeopleCsv(db: Db, range: DateRange): Promise<string>
   ]);
 }
 
-/** All three leaderboards (full rankings, not just the top 10) for a period. */
+/** All leaderboards (full rankings, not just the top 10) for a period, with points when on. */
 export async function exportLeaderboardsCsv(
   db: Db,
   period: LeaderboardPeriod,
   now = new Date(),
+  { points = false }: { points?: boolean } = {},
 ): Promise<string> {
   const range = periodRange(period, now);
-  const [recipients, senders, values] = await Promise.all([
+  const [recipients, senders, values, pointsBoard] = await Promise.all([
     topRecipients(db, range, Number.MAX_SAFE_INTEGER),
     topSenders(db, range, Number.MAX_SAFE_INTEGER),
     topValues(db, range),
+    points ? topPointsRecipients(db, range, Number.MAX_SAFE_INTEGER) : null,
   ]);
   const rows = [
     ...recipients.entries.map((e) => ({
@@ -125,6 +133,11 @@ export async function exportLeaderboardsCsv(
       ...e,
     })),
     ...values.entries.map((e) => ({ board: "Top values", unit: "shoutouts", ...e })),
+    ...(pointsBoard?.entries ?? []).map((e) => ({
+      board: "Most points received",
+      unit: "points received",
+      ...e,
+    })),
   ];
   return toCsv(rows, [
     { header: "period", value: () => PERIOD_LABELS[period] },

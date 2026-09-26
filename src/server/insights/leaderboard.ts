@@ -77,6 +77,41 @@ export async function topSenders(
   return toBoard(rows, limit, viewerId);
 }
 
+/**
+ * People who received the most points (points mode). Like the other boards,
+ * only visible shoutouts count and people no longer active are left out.
+ */
+export async function topPointsRecipients(
+  db: Db,
+  range: DateRange,
+  limit = 10,
+  viewerId?: string,
+): Promise<Board> {
+  const rows = await db.rows<RankedEntry>(sql`
+    SELECT u.id, u.name, SUM(s.points)::int AS count,
+           RANK() OVER (ORDER BY SUM(s.points) DESC)::int AS rank
+    FROM shoutout_recipients r
+    JOIN shoutouts s ON s.id = r.shoutout_id
+    JOIN users u ON u.id = r.user_id
+    WHERE u.active AND s.points > 0 AND ${rangeSql(range)}
+    GROUP BY u.id, u.name
+    ORDER BY count DESC, u.name ASC`);
+  return toBoard(rows, limit, viewerId);
+}
+
+/**
+ * The same board with the numbers removed, for boards where only the order may
+ * be shown (points totals are private to each person and admins).
+ */
+export function ranksOnly(board: Board): Board {
+  const strip = (entry: RankedEntry): RankedEntry => ({ ...entry, count: 0 });
+  return {
+    entries: board.entries.map(strip),
+    viewer: board.viewer && strip(board.viewer),
+    max: 0,
+  };
+}
+
 /** Company values by number of shoutouts. */
 export async function topValues(db: Db, range: DateRange): Promise<Board> {
   const rows = await db.rows<RankedEntry>(sql`

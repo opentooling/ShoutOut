@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { loadConfig } from "@/lib/config";
 import { getDb } from "@/lib/db";
 import { recordAudit } from "@/server/admin/audit";
 import { exportLeaderboardsCsv, exportPeopleCsv, exportShoutoutsCsv } from "@/server/admin/export";
@@ -38,7 +39,9 @@ export async function GET(request: Request, { params }: RouteContext<"/admin/exp
     details = { kind };
   } else if (kind === "leaderboards") {
     const period = parsePeriod(search.get("period"));
-    csv = await exportLeaderboardsCsv(db, period);
+    csv = await exportLeaderboardsCsv(db, period, new Date(), {
+      points: loadConfig().points.enabled,
+    });
     details = { kind, period };
   } else {
     return new Response("Not found", { status: 404 });

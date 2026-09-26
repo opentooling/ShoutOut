@@ -14,15 +14,35 @@ export interface GuideScreenshot {
   alt: string;
 }
 
+/** Optional features: the app shows their parts of the guide only when they are on. */
+export type GuideFeature = "points" | "budget";
+export type GuideFeatures = Record<GuideFeature, boolean>;
+
+/** A step or tip, optionally only for a feature. */
+export type GuideText = string | { text: string; feature: GuideFeature };
+
 export interface GuideSection {
   id: string;
   title: string;
   audience: "everyone" | "admins";
+  /** Only shown when this feature is on. */
+  feature?: GuideFeature;
   intro: string;
-  steps?: string[];
-  tips?: string[];
+  steps?: GuideText[];
+  tips?: GuideText[];
   screenshot: GuideScreenshot;
 }
+
+/** A section as shown for one configuration: only the parts that apply, as plain text. */
+export interface ResolvedGuideSection extends Omit<GuideSection, "steps" | "tips"> {
+  steps?: string[];
+  tips?: string[];
+}
+
+const FEATURE_NOTES: Record<GuideFeature, string> = {
+  points: "If your company uses points",
+  budget: "If your company limits shoutouts per quarter",
+};
 
 export const GUIDE_TITLE = "ShoutOut user guide";
 export const GUIDE_INTRO =
@@ -50,7 +70,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     title: "The feed",
     audience: "everyone",
     intro:
-      "The feed is your home page. It shows the latest shoutouts you can see, newest first, with your remaining budget and this month's most recognised colleagues alongside.",
+      "The feed is your home page. It shows the latest shoutouts you can see, newest first, with this month's most recognised colleagues alongside.",
     tips: [
       "Each shoutout shows who it is for, who sent it, the card, the company value it celebrates and the message.",
       "Choose **Show older shoutouts** at the bottom to go further back.",
@@ -89,15 +109,16 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     id: "points",
     title: "Adding points",
     audience: "everyone",
+    feature: "points",
     intro:
-      "If your company uses points, you can add some to a shoutout for help that went well beyond the everyday. Points are always optional: the message matters most.",
+      "You can add points to a shoutout for help that went well beyond the everyday. Points are always optional: the message matters most.",
     steps: [
       "While sending a shoutout, pick an amount under **Add points?**, or leave it at **No points**.",
       "Everyone you thank gets that amount, so 10 points to three people uses 30 of your points. Amounts you can't afford are greyed out.",
       "Send it as usual. The points show on the shoutout for you, the people you thanked and admins; nobody else sees them.",
     ],
     tips: [
-      "You get a points budget each quarter (100 unless your company changed it), shown under your shoutout budget on the feed. Unused points don't carry over.",
+      "You get a points budget each quarter (100 unless your company changed it), shown on the feed. Unused points don't carry over.",
       "Points you receive build up: see your total on the feed and on your profile. Only you and admins can see it.",
       "Deleting a shoutout within 24 hours gives the points back.",
     ],
@@ -110,8 +131,9 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     id: "your-budget",
     title: "Your quarterly budget",
     audience: "everyone",
+    feature: "budget",
     intro:
-      "Unless your company has turned it off, everyone gets a set number of shoutouts each calendar quarter (20 unless your company changed it). Each person you thank uses one, so a shoutout to three people uses three.",
+      "Everyone gets a set number of shoutouts each calendar quarter (20 unless your company changed it). Each person you thank uses one, so a shoutout to three people uses three.",
     tips: [
       "The meter on the feed shows what you have left and when it resets.",
       "The budget resets on the first day of each quarter; unused shoutouts don't carry over.",
@@ -126,7 +148,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     id: "reactions-and-comments",
     title: "Reactions and comments",
     audience: "everyone",
-    intro: "Join in on any shoutout you can see. Reactions and comments don't use your budget.",
+    intro: "Join in on any shoutout you can see. Reactions and comments are always free.",
     steps: [
       "Choose an emoji under a shoutout to react. Choose it again to take your reaction back.",
       "Choose **☺ +** to pick a different emoji.",
@@ -146,9 +168,13 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     steps: [
       "Find the shoutout in the feed.",
       "Choose **Edit** to change the card, value, message or visibility. The recipients can't be changed; delete it and send a new one instead.",
-      "Choose **Delete** to remove it. The shoutouts it used go back into your budget.",
+      "Choose **Delete** to remove it.",
     ],
-    tips: ["After 24 hours the Edit and Delete buttons disappear."],
+    tips: [
+      "After 24 hours the Edit and Delete buttons disappear.",
+      { feature: "budget", text: "Deleting gives back the shoutouts it used from your budget." },
+      { feature: "points", text: "Deleting gives back any points it included." },
+    ],
     screenshot: {
       file: "edit-delete.jpg",
       alt: "Your own recent shoutout showing the Edit and Delete buttons",
@@ -198,6 +224,10 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       "Your own row is highlighted, even if you're outside the top ten.",
       "Private shoutouts count too, but only as numbers.",
       "It's a way to spot who might be overlooked, not a competition.",
+      {
+        feature: "points",
+        text: "**Most points received** ranks people by the points they got. Everyone sees the order; only admins see the totals.",
+      },
     ],
     screenshot: {
       file: "leaderboard.jpg",
@@ -236,7 +266,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     title: "Email notifications",
     audience: "everyone",
     intro:
-      "If your company has turned email on, ShoutOut emails you when someone sends you a shoutout. Once a quarter, about two weeks before the budget resets, it also reminds you if you still have shoutouts left. Both are on unless you turn them off.",
+      "If your company has turned email on, ShoutOut emails you when someone sends you a shoutout. Once a quarter, about two weeks before the quarter ends, it also reminds you if you still have some of your budget left to give. Both are on unless you turn them off.",
     steps: [
       "Choose your name or picture at the top right to open **your profile**.",
       "Under **Email me**, untick the emails you don't want.",
@@ -302,6 +332,23 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     },
   },
   {
+    id: "admin-points",
+    title: "Points balances",
+    audience: "admins",
+    feature: "points",
+    intro:
+      "**Admin → Points** lists everyone who has given or received points: their balance, what they received this quarter and what they gave. Nothing can be spent yet, so a balance is everything that person has received.",
+    tips: [
+      "Choose **Download points.csv** for a spreadsheet, e.g. to hand out rewards.",
+      "Points from a shoutout that was deleted, or hidden after a report, don't count.",
+      "Only admins see other people's totals; everyone else sees their own.",
+    ],
+    screenshot: {
+      file: "admin-points.jpg",
+      alt: "The admin Points tab listing people with their points balance, received and given this quarter",
+    },
+  },
+  {
     id: "analytics",
     title: "Analytics",
     audience: "admins",
@@ -314,13 +361,40 @@ export const GUIDE_SECTIONS: GuideSection[] = [
   },
 ];
 
+function applies(text: GuideText, features: GuideFeatures): boolean {
+  return typeof text === "string" || features[text.feature];
+}
+
+function plain(text: GuideText): string {
+  return typeof text === "string" ? text : text.text;
+}
+
+/** The guide for a configuration: sections and lines for features that are off are left out. */
+export function guideSections(features: GuideFeatures): ResolvedGuideSection[] {
+  return GUIDE_SECTIONS.filter((section) => !section.feature || features[section.feature]).map(
+    (section) => ({
+      ...section,
+      steps: section.steps?.filter((step) => applies(step, features)).map(plain),
+      tips: section.tips?.filter((tip) => applies(tip, features)).map(plain),
+    }),
+  );
+}
+
+/** For the Markdown copy, which covers every configuration: feature lines are labelled. */
+function labelled(text: GuideText): string {
+  return typeof text === "string" ? text : `*${FEATURE_NOTES[text.feature]}:* ${text.text}`;
+}
+
 function markdownSection(section: GuideSection, imageBase: string): string {
-  const parts = [`### ${section.title}`, section.intro];
+  const intro = section.feature
+    ? `*${FEATURE_NOTES[section.feature]}.* ${section.intro}`
+    : section.intro;
+  const parts = [`### ${section.title}`, intro];
   if (section.steps?.length) {
-    parts.push(section.steps.map((step, i) => `${i + 1}. ${step}`).join("\n"));
+    parts.push(section.steps.map((step, i) => `${i + 1}. ${labelled(step)}`).join("\n"));
   }
   if (section.tips?.length) {
-    parts.push(section.tips.map((tip) => `- ${tip}`).join("\n"));
+    parts.push(section.tips.map((tip) => `- ${labelled(tip)}`).join("\n"));
   }
   parts.push(`![${section.screenshot.alt}](${imageBase}/${section.screenshot.file})`);
   return parts.join("\n\n");
@@ -332,7 +406,7 @@ export function guideToMarkdown(imageBase: string): string {
     `# ${GUIDE_TITLE}`,
     "<!-- Generated from src/content/user-guide.ts by `npm run guide:docs`. Edit that file, not this one. -->",
     GUIDE_INTRO,
-    "Also available in the app at **/guide**.",
+    "Also available in the app at **/guide**, which shows only the features your company uses. Parts marked *If your company…* depend on those settings.",
   ];
   const toc = GUIDE_SECTIONS.map(
     (s) => `- [${s.title}](#${s.id})${s.audience === "admins" ? " (admins)" : ""}`,

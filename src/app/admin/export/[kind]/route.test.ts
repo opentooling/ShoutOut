@@ -85,6 +85,8 @@ describe("GET /admin/export/[kind]", () => {
     );
     expect(recordAudit.mock.calls[0][1].details).toEqual({ kind: "people", from: "", to: "" });
     expect(await (await call("leaderboards", "?period=week")).text()).toBe("period\r\n");
-    expect(exportLeaderboardsCsv).toHaveBeenCalledWith({ db: true }, "week");
+    expect(exportLeaderboardsCsv).toHaveBeenCalledWith({ db: true }, "week", expect.any(Date), {
+      points: false,
+    });
   });
 });

@@ -8,14 +8,28 @@ const redirect = vi.fn(() => {
 const topRecipients = vi.fn();
 const topSenders = vi.fn();
 const topValues = vi.fn();
-const LeaderboardBoard = vi.fn((props: { title: string; viewerId?: string; people?: boolean }) => (
-  <section aria-label={props.title} />
-));
+const LeaderboardBoard = vi.fn(
+  (props: {
+    title: string;
+    viewerId?: string;
+    people?: boolean;
+    counts?: boolean;
+    description?: string;
+    board?: { entries: { count: number }[] };
+  }) => <section aria-label={props.title} />,
+);
 
 vi.mock("@/auth", () => ({ auth }));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/lib/db", () => ({ getDb: () => ({}) }));
-vi.mock("@/server/insights/leaderboard", () => ({ topRecipients, topSenders, topValues }));
+const topPointsRecipients = vi.fn();
+vi.mock("@/server/insights/leaderboard", async (importOriginal) => ({
+  ranksOnly: (await importOriginal<typeof import("@/server/insights/leaderboard")>()).ranksOnly,
+  topRecipients,
+  topSenders,
+  topValues,
+  topPointsRecipients,
+}));
 vi.mock("@/components/layout/app-header", () => ({ AppHeader: () => <header /> }));
 vi.mock("@/components/insights/leaderboard-board", () => ({ LeaderboardBoard }));
 
@@ -35,6 +49,32 @@ describe("LeaderboardPage", () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  it("adds a points board with ranks only, and totals for admins", async () => {
+    vi.stubEnv("SHOUTOUT_POINTS_ENABLED", "true");
+    topPointsRecipients.mockResolvedValue({
+      entries: [{ id: "u2", name: "Carol", count: 40, rank: 1 }],
+      viewer: null,
+      max: 40,
+    });
+    render(await LeaderboardPage(props()));
+    const pointsBoard = LeaderboardBoard.mock.calls[3][0];
+    expect(pointsBoard).toMatchObject({
+      title: "Most points received",
+      description: "In order of points received",
+      counts: false,
+    });
+    expect(pointsBoard.board!.entries[0].count).toBe(0);
+    expect(screen.getByText(/Points totals are private/)).toBeInTheDocument();
+
+    auth.mockResolvedValue({ user: { id: "a1", roles: ["shoutout-admin"] } });
+    render(await LeaderboardPage(props()));
+    const adminBoard = LeaderboardBoard.mock.calls[7][0];
+    expect(adminBoard).toMatchObject({ description: "Points received", counts: true });
+    expect(adminBoard.board!.entries[0].count).toBe(40);
+    expect(screen.getByText(/Only admins see points totals/)).toBeInTheDocument();
   });
 
   it("redirects anonymous visitors", async () => {

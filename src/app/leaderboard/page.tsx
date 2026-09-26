@@ -4,8 +4,17 @@ import { auth } from "@/auth";
 import { LeaderboardBoard } from "@/components/insights/leaderboard-board";
 import { SegmentedLinks } from "@/components/insights/segmented-links";
 import { AppHeader } from "@/components/layout/app-header";
+import { cn } from "@/lib/cn";
+import { loadConfig } from "@/lib/config";
 import { getDb } from "@/lib/db";
-import { topRecipients, topSenders, topValues } from "@/server/insights/leaderboard";
+import { isAdmin } from "@/server/auth/roles";
+import {
+  ranksOnly,
+  topPointsRecipients,
+  topRecipients,
+  topSenders,
+  topValues,
+} from "@/server/insights/leaderboard";
 import {
   LEADERBOARD_PERIODS,
   PERIOD_LABELS,
@@ -24,10 +33,13 @@ export default async function LeaderboardPage({ searchParams }: PageProps<"/lead
   const period = parsePeriod((await searchParams).period);
   const range = periodRange(period);
   const db = getDb();
-  const [recipients, senders, values] = await Promise.all([
+  const pointsOn = loadConfig().points.enabled;
+  const admin = isAdmin(user.roles);
+  const [recipients, senders, values, points] = await Promise.all([
     topRecipients(db, range, 10, user.id),
     topSenders(db, range, 10, user.id),
     topValues(db, range),
+    pointsOn ? topPointsRecipients(db, range, 10, user.id) : null,
   ]);
 
   return (
@@ -49,7 +61,9 @@ export default async function LeaderboardPage({ searchParams }: PageProps<"/lead
             }))}
           />
         </div>
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div
+          className={cn("grid gap-6", points ? "md:grid-cols-2 xl:grid-cols-4" : "lg:grid-cols-3")}
+        >
           <LeaderboardBoard
             title="Most recognised"
             description="Shoutouts received"
@@ -71,9 +85,26 @@ export default async function LeaderboardPage({ searchParams }: PageProps<"/lead
             board={values}
             people={false}
           />
+          {points && (
+            <LeaderboardBoard
+              title="Most points received"
+              description={admin ? "Points received" : "In order of points received"}
+              unit="points received"
+              // Totals are private: everyone sees the order, only admins see the numbers.
+              board={admin ? points : ranksOnly(points)}
+              counts={admin}
+              viewerId={user.id}
+              emptyText="No points given in this period yet."
+            />
+          )}
         </div>
         <p className="text-xs text-muted">
-          Counts include private shoutouts (numbers only). Weeks start on Monday; all times are UTC.
+          Counts include private shoutouts (numbers only).
+          {points &&
+            (admin
+              ? " Only admins see points totals; everyone else sees the order."
+              : " Points totals are private, so that board shows the order only.")}{" "}
+          Weeks start on Monday; all times are UTC.
         </p>
       </main>
     </>

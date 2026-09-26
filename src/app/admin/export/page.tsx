@@ -76,7 +76,7 @@ export default async function ExportPage() {
             </button>
           </form>
         </ExportCard>
-        <ExportCard title="Leaderboards" description="Full rankings for all three leaderboards.">
+        <ExportCard title="Leaderboards" description="Full rankings for every leaderboard.">
           <form method="get" action="/admin/export/leaderboards" className="space-y-3">
             <div>
               <label htmlFor="export-period" className="text-sm font-bold">

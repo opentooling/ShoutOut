@@ -1,6 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { GUIDE_SECTIONS } from "@/content/user-guide";
+import { guideSections } from "@/content/user-guide";
+
+// The default configuration: shoutout budget on, points off.
+const GUIDE_SECTIONS = guideSections({ points: false, budget: true });
 
 const auth = vi.fn();
 vi.mock("@/auth", () => ({ auth }));
@@ -17,6 +20,7 @@ const { default: GuidePage, metadata } = await import("./page");
 describe("GuidePage", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it("renders every section with contents, steps, tips and captured screenshots", async () => {
@@ -48,6 +52,29 @@ describe("GuidePage", () => {
     expect(feed.closest("a")).toHaveAttribute("href", "/guide/feed.jpg");
     // Sections whose screenshot hasn't been captured still render, without an image.
     expect(within(sending).queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("only covers the features in use", async () => {
+    auth.mockResolvedValue(null);
+    const { unmount } = render(await GuidePage());
+    expect(screen.getByRole("heading", { name: "Your quarterly budget" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Adding points" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Points balances" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Most points received/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/points/i)).not.toBeInTheDocument();
+    unmount();
+
+    vi.stubEnv("SHOUTOUT_POINTS_ENABLED", "true");
+    vi.stubEnv("SHOUTOUT_BUDGET_ENABLED", "false");
+    render(await GuidePage());
+    expect(screen.getByRole("heading", { name: "Adding points" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Points balances" })).toBeInTheDocument();
+    expect(screen.getByText(/ranks people by the points they got/)).toBeInTheDocument();
+    expect(screen.getByText("Deleting gives back any points it included.")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Your quarterly budget" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/shoutouts it used from your budget/)).not.toBeInTheDocument();
   });
 
   it("works signed out", async () => {
