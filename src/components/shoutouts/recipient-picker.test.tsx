@@ -119,6 +119,22 @@ describe("RecipientPicker", () => {
     vi.useRealTimers();
   });
 
+  it("stays open when focus comes straight back after a blur", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    render(<Harness />);
+    fireEvent.focus(combobox());
+    fireEvent.blur(combobox());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    fireEvent.focus(combobox());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    expect(combobox()).toHaveAttribute("aria-expanded", "true");
+    vi.useRealTimers();
+  });
+
   it("does not add past the maximum", async () => {
     render(<Harness max={1} />);
     await userEvent.click(combobox());

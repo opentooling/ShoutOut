@@ -54,6 +54,7 @@ export function RecipientPicker({
 }) {
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<Person[]>([]);
@@ -166,8 +167,14 @@ export function RecipientPicker({
             setQuery(event.target.value);
             setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          onFocus={() => {
+            // Coming back quickly must not be undone by the close from the last blur.
+            clearTimeout(closeTimer.current);
+            setOpen(true);
+          }}
+          onBlur={() => {
+            closeTimer.current = setTimeout(() => setOpen(false), 150);
+          }}
           onKeyDown={onKeyDown}
           className="min-w-40 flex-1 bg-transparent px-2 py-1.5 text-lg placeholder:text-muted focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed"
         />

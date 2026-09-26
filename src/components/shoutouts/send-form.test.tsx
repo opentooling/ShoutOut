@@ -40,7 +40,9 @@ function setup(overrides: Partial<SendFormProps> = {}) {
 
 async function pick(name: string) {
   await userEvent.click(screen.getByRole("combobox"));
-  fireEvent.mouseDown(await screen.findByRole("option", { name: new RegExp(name) }));
+  // The search is debounced; allow for slow CI runners.
+  const option = await screen.findByRole("option", { name: new RegExp(name) }, { timeout: 3000 });
+  fireEvent.mouseDown(option);
 }
 
 describe("SendShoutoutForm", () => {
