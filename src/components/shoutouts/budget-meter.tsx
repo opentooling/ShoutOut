@@ -3,7 +3,7 @@ import { cn } from "@/lib/cn";
 
 const UNITS = {
   shoutouts: { text: "shoutouts left", label: "Shoutouts left this quarter" },
-  points: { text: "points left to give", label: "Points left to give this quarter" },
+  points: { text: "points to give", label: "Points left to give this quarter" },
 };
 
 export function BudgetMeter({
@@ -30,7 +30,9 @@ export function BudgetMeter({
             of {allowance} {UNITS[unit].text}
           </span>
         </p>
-        <p className="text-sm text-muted">Resets {formatDayMonth(resetsAt)}</p>
+        <p className="shrink-0 text-sm whitespace-nowrap text-muted">
+          Resets {formatDayMonth(resetsAt)}
+        </p>
       </div>
       <div
         role="progressbar"

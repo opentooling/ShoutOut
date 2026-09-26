@@ -28,6 +28,13 @@ const messages = [
   "Amazing job organising the team offsite.",
   "Thank you for always making time to answer questions.",
 ];
+const comments = [
+  "Couldn't agree more!",
+  "So well deserved.",
+  "Seconded, this saved us a lot of time.",
+  "This is exactly what the team needed. Thank you!",
+  "Great to see this recognised.",
+];
 const reactions = [
   "clap",
   "heart",
@@ -56,7 +63,8 @@ const usedThisQuarter = Object.fromEntries(people.map((p) => [p, 0]));
 const pointsThisQuarter = Object.fromEntries(people.map((p) => [p, 0]));
 
 const sql = ["BEGIN;"];
-for (let i = 0; i < 140; i++) {
+const COUNT = 140;
+for (let i = 0; i < COUNT; i++) {
   const sender = pick(people);
   // Skew recipients so leaderboards are interesting.
   const weighted = [...people, "carol", "carol", "erin", "bob", "henry"].filter(
@@ -92,6 +100,20 @@ for (let i = 0; i < 140; i++) {
       `INSERT INTO reactions (shoutout_id, user_id, emoji, created_at) VALUES (${q(id)}, ${user(reactor)}, ${q(pick(reactions))}, ${q(createdAt)}) ON CONFLICT DO NOTHING;`,
     );
   }
+}
+// A few conversations, added after the shoutouts so the rest of the data stays the same.
+for (let i = 0; i < COUNT; i++) {
+  if (rand() >= 0.2) continue;
+  const commenters = people.filter(() => rand() < 0.2).slice(0, 2);
+  commenters.forEach((author, n) => {
+    const id = `demo_${i}`;
+    const at = `(SELECT created_at + interval '${n + 1} hours' FROM shoutouts WHERE id = ${q(id)})`;
+    sql.push(
+      `INSERT INTO comments (id, shoutout_id, author_id, body, created_at, updated_at) ` +
+        `SELECT ${q(`${id}_c${n}`)}, ${q(id)}, ${user(author)}, ${q(pick(comments))}, ${at}, ${at} ` +
+        `WHERE EXISTS (SELECT 1 FROM shoutouts WHERE id = ${q(id)});`,
+    );
+  });
 }
 sql.push("COMMIT;");
 process.stdout.write(sql.join("\n") + "\n");

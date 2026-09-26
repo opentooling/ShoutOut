@@ -123,10 +123,13 @@ test("everyday screens", async ({ page }) => {
 
   // A shoutout with a conversation going on.
   await page.goto("/");
-  await page
-    .getByRole("link", { name: /^💬 \d+ comments?$/ })
-    .first()
-    .click();
+  const withComments = page.getByRole("link", { name: /^💬 \d+ comments?$/ });
+  // Look further back through the feed if the newest shoutouts have no comments.
+  for (let pages = 0; pages < 8 && (await withComments.count()) === 0; pages++) {
+    await page.getByRole("link", { name: /show older shoutouts/i }).click();
+    await page.waitForLoadState("networkidle");
+  }
+  await withComments.first().click();
   await expect(page.getByRole("heading", { name: /comments/i })).toBeVisible();
   await shot(page, "detail.jpg", page.locator("main"));
 
@@ -135,6 +138,10 @@ test("everyday screens", async ({ page }) => {
     "Thanks for walking me through the new deploy pipeline. You saved me a whole afternoon of guesswork.";
   await fillShoutout(page, message);
   await shot(page, "send.jpg", page.locator("main"), 1400);
+  // Points mode is on in the local deployment.
+  await choose(page, "🎁 10");
+  await shot(page, "points.jpg", page.locator("fieldset", { hasText: "Add points?" }));
+  await choose(page, "No points");
 
   // Send it to show the Edit and Delete buttons, then delete it (refunds the budget).
   await page.getByRole("button", { name: "Send shoutout" }).click();
