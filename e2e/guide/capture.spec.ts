@@ -20,7 +20,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { choose, signInAs } from "../helpers";
+import { choose, e2eMessage, signInAs } from "../helpers";
 
 const OUT_DIR = path.join(process.cwd(), "public/guide");
 const MANIFEST = path.join(process.cwd(), "src/content/guide-screenshots.json");
@@ -216,7 +216,9 @@ test("points screens", async ({ browser }) => {
 test("admin screens", async ({ browser }) => {
   // Something to moderate: frank thanks henry, grace reports it.
   const message =
-    "Thanks for covering the support rota over the holidays. The team really noticed.";
+    // Tagged [e2e] (hidden in the screenshots) so the E2E clean-up deletes it:
+    // a removed shoutout still counts against Frank's budget.
+    e2eMessage("Thanks for covering the support rota over the holidays. The team really noticed.");
   const frank = await browser.newPage();
   await signInAs(frank, "frank");
   await frank.goto("/shoutouts/new");
@@ -249,7 +251,8 @@ test("admin screens", async ({ browser }) => {
   await alice
     .getByRole("list", { name: "Reported shoutouts" })
     .getByRole("listitem")
-    .filter({ hasText: message })
+    // The screenshot tidied the [e2e] tag out of the page, so match the words.
+    .filter({ hasText: "support rota" })
     .getByRole("button", { name: "Remove" })
     .click();
 

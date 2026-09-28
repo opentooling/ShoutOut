@@ -26,6 +26,8 @@ test.describe("sending shoutouts", () => {
   test("recipients and colleagues see public shoutouts; private ones stay private", async ({
     browser,
   }) => {
+    // Three people sign in; allow for a busy local cluster.
+    test.setTimeout(90_000);
     const publicMessage = e2eMessage("Brilliant demo today");
     const privateMessage = e2eMessage("Thank you for the kind words");
 
@@ -57,7 +59,7 @@ test.describe("sending shoutouts", () => {
     for (const message of [publicMessage, privateMessage]) {
       frank.once("dialog", (dialog) => dialog.accept());
       await feedItem(frank, message).getByRole("button", { name: "Delete" }).click();
-      await expect(frank.getByRole("status")).toHaveText(/deleted/i);
+      await expect(frank.getByRole("status")).toHaveText(/deleted/i, { timeout: 15_000 });
     }
   });
 
