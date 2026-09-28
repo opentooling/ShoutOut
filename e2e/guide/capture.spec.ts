@@ -157,7 +157,8 @@ test("everyday screens", async ({ page }) => {
   await expect(page.getByRole("status")).toHaveText(/deleted/i);
 
   // Report form, without sending a report.
-  await page.getByRole("article").first().getByRole("link", { name: "Report" }).click();
+  // The first shoutout someone else sent (your own can't be reported).
+  await page.getByRole("link", { name: "Report" }).first().click();
   await expect(page.getByRole("heading", { name: "Report shoutout" })).toBeVisible();
   await shot(page, "report.jpg", page.locator("main"));
 

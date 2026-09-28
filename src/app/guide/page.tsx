@@ -95,34 +95,36 @@ export default async function GuidePage() {
   return (
     <>
       <SiteHeader user={session?.user} />
-      <div className="mx-auto grid w-full max-w-6xl flex-1 items-start gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-10">
-        <GuideToc
-          groups={groups.map((group) => ({
-            title: group.title,
-            items: group.items.map(({ id, title }) => ({ id, title })),
-          }))}
-        />
-        <main className="min-w-0 space-y-6">
-          <div>
-            <h1 className="font-display text-4xl font-semibold">{GUIDE_TITLE}</h1>
-            <p className="mt-3 max-w-2xl text-lg text-muted">{GUIDE_INTRO}</p>
-            <p className="mt-2 text-sm text-muted">
-              Wondering why it works the way it does?{" "}
-              <Link href="/about" className="font-bold text-teal-strong hover:underline">
-                Read about ShoutOut
-              </Link>
-              .
-            </p>
-          </div>
-          {groups.map((group) => (
-            <div key={group.title} className="space-y-6">
-              <h2 className="pt-4 font-display text-3xl font-semibold">{group.title}</h2>
-              {group.items.map((section) => (
-                <Section key={section.id} section={section} />
-              ))}
-            </div>
-          ))}
-        </main>
+      <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+        <div className="mb-8">
+          <h1 className="font-display text-4xl font-semibold">{GUIDE_TITLE}</h1>
+          <p className="mt-3 max-w-2xl text-lg text-muted">{GUIDE_INTRO}</p>
+          <p className="mt-2 text-sm text-muted">
+            Wondering why it works the way it does?{" "}
+            <Link href="/about" className="font-bold text-teal-strong hover:underline">
+              Read about ShoutOut
+            </Link>
+            .
+          </p>
+        </div>
+        <div className="grid items-start gap-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-10">
+          <GuideToc
+            groups={groups.map((group) => ({
+              title: group.title,
+              items: group.items.map(({ id, title }) => ({ id, title })),
+            }))}
+          />
+          <main className="min-w-0 space-y-12">
+            {groups.map((group) => (
+              <div key={group.title} className="space-y-6">
+                <h2 className="font-display text-3xl font-semibold">{group.title}</h2>
+                {group.items.map((section) => (
+                  <Section key={section.id} section={section} />
+                ))}
+              </div>
+            ))}
+          </main>
+        </div>
       </div>
     </>
   );
