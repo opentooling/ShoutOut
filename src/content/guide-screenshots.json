@@ -1,18 +1,18 @@
 {
   "admin-cards.jpg": {
-    "width": 1572,
+    "width": 1764,
     "height": 1650
   },
   "admin-export.jpg": {
-    "width": 1572,
+    "width": 1764,
     "height": 1287
   },
   "admin-moderation.jpg": {
-    "width": 1572,
-    "height": 1650
+    "width": 1764,
+    "height": 1287
   },
   "admin-points.jpg": {
-    "width": 1572,
+    "width": 1764,
     "height": 1287
   },
   "analytics.jpg": {
@@ -52,7 +52,7 @@
     "height": 1287
   },
   "points.jpg": {
-    "width": 924,
+    "width": 1116,
     "height": 198
   },
   "profile.jpg": {
@@ -64,8 +64,8 @@
     "height": 1358
   },
   "send.jpg": {
-    "width": 1572,
-    "height": 1775
+    "width": 1764,
+    "height": 1637
   },
   "signin.jpg": {
     "width": 1800,
