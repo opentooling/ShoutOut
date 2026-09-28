@@ -137,6 +137,7 @@ Admins get an **Admin** area:
 | `SHOUTOUT_POINTS_QUARTERLY_BUDGET`         | `config.points.quarterlyBudget`               | `100`               | Points each person can give per quarter (each recipient gets the amount picked)                    |
 | `SHOUTOUT_POINTS_CHOICES`                  | `config.points.choices`                       | `5,10,25,50`        | Amounts to choose from, per recipient                                                              |
 | `SHOUTOUT_MAX_RECIPIENTS`                  | `config.maxRecipients`                        | `5`                 | Most people in one shoutout                                                                        |
+| `SHOUTOUT_MAX_VALUES`                      | `config.maxValues`                            | `3`                 | Most company values on one shoutout (`1` = pick exactly one)                                       |
 | `SHOUTOUT_SYNC_ON_STARTUP`                 | `userSync.onStartup`                          | `true`              | Sync people from Keycloak when the app starts                                                      |
 | –                                          | `userSync.schedule`                           | `0 * * * *`         | CronJob schedule for the Keycloak people sync                                                      |
 | `SHOUTOUT_SYNC_TOKEN`                      | `secrets.syncToken`                           | generated           | Bearer token for `POST /api/internal/sync-users`                                                   |

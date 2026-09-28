@@ -39,7 +39,7 @@ export default async function ReportPage({ params }: PageProps<"/shoutouts/[id]/
           design={toCardDesign(shoutout.card)}
           from={shoutout.sender.name}
           to={shoutout.recipients.map((r) => r.name)}
-          value={shoutout.value.name}
+          values={shoutout.values.map((value) => value.name)}
           message={shoutout.message}
         />
         <ReportForm

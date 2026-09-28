@@ -30,7 +30,7 @@ const shoutout = {
     illustration: "heart",
     tone: "coral",
   },
-  value: { id: "v", name: "Integrity" },
+  values: [{ id: "v", name: "Integrity" }],
   sender: { id: "u2", name: "Bob" },
   recipients: [{ id: "u3", name: "Carol" }],
   canReport: true,

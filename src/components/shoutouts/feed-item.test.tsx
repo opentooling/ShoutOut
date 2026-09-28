@@ -23,7 +23,7 @@ const item: FeedItem = {
     illustration: "sprout",
     tone: "teal",
   },
-  value: { id: "v", name: "Collaboration" },
+  values: [{ id: "v", name: "Collaboration" }],
   sender: { id: "u1", name: "Alice Anders" },
   recipients: [
     { id: "u2", name: "Bob Baker" },

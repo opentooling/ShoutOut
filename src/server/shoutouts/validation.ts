@@ -9,12 +9,30 @@ const message = z
 
 const visibility = z.enum(["PUBLIC", "PRIVATE"]);
 
-const details = {
-  cardId: z.string().min(1, "Pick a card"),
-  valueId: z.string().min(1, "Pick a company value"),
-  message,
-  visibility,
-};
+/** Company values, in the order picked, without repeats. */
+function valueIds(maxValues: number) {
+  return z
+    .array(z.string().min(1))
+    .transform((ids) => [...new Set(ids)])
+    .pipe(
+      z
+        .array(z.string())
+        .min(1, "Pick a company value")
+        .max(
+          maxValues,
+          maxValues === 1 ? "Pick one company value" : `Pick up to ${maxValues} company values`,
+        ),
+    );
+}
+
+function details(maxValues: number) {
+  return {
+    cardId: z.string().min(1, "Pick a card"),
+    valueIds: valueIds(maxValues),
+    message,
+    visibility,
+  };
+}
 
 /** Points per recipient; empty means none. Which amounts are allowed is checked when sending. */
 const points = z.coerce
@@ -23,7 +41,7 @@ const points = z.coerce
   .min(0, "Pick an amount of points")
   .default(0);
 
-export function sendShoutoutSchema(maxRecipients: number) {
+export function sendShoutoutSchema(maxRecipients: number, maxValues: number) {
   return z.object({
     points,
     recipientIds: z
@@ -35,14 +53,16 @@ export function sendShoutoutSchema(maxRecipients: number) {
           .min(1, "Pick at least one person")
           .max(maxRecipients, `You can recognise up to ${maxRecipients} people at once`),
       ),
-    ...details,
+    ...details(maxValues),
   });
 }
 
-export const editShoutoutSchema = z.object(details);
+export function editShoutoutSchema(maxValues: number) {
+  return z.object(details(maxValues));
+}
 
 export type SendShoutoutInput = z.output<ReturnType<typeof sendShoutoutSchema>>;
-export type EditShoutoutInput = z.output<typeof editShoutoutSchema>;
+export type EditShoutoutInput = z.output<ReturnType<typeof editShoutoutSchema>>;
 
 /** First error message per field, for showing next to form inputs. */
 export function fieldErrors(error: z.ZodError): Record<string, string> {

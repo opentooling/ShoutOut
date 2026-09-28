@@ -85,10 +85,13 @@ for (let i = 0; i < COUNT; i++) {
   let points = rand() < 0.35 ? pick([5, 5, 10, 10, 25]) : 0;
   if (at >= quarterStart && pointsThisQuarter[sender] + points * recipients.length > 40) points = 0;
   if (at >= quarterStart) pointsThisQuarter[sender] += points * recipients.length;
+  const card = pick(cards);
+  const value = pick(values);
   sql.push(
-    `INSERT INTO shoutouts (id, sender_id, card_id, value_id, message, visibility, points, created_at, updated_at) VALUES (` +
-      `${q(id)}, ${user(sender)}, 'card_${pick(cards)}', 'value_${pick(values)}', ${q(`${pick(messages)} [demo]`)}, ` +
+    `INSERT INTO shoutouts (id, sender_id, card_id, message, visibility, points, created_at, updated_at) VALUES (` +
+      `${q(id)}, ${user(sender)}, 'card_${card}', ${q(`${pick(messages)} [demo]`)}, ` +
       `'${visibility}', ${points}, ${q(createdAt)}, ${q(createdAt)});`,
+    `INSERT INTO shoutout_values (shoutout_id, value_id, position) VALUES (${q(id)}, 'value_${value}', 0);`,
   );
   for (const r of recipients) {
     sql.push(
@@ -101,6 +104,17 @@ for (let i = 0; i < COUNT; i++) {
     );
   }
 }
+// Some shoutouts celebrate a second value (added last, so the data above stays the same).
+for (let i = 0; i < COUNT; i++) {
+  if (rand() >= 0.25) continue;
+  const id = `demo_${i}`;
+  sql.push(
+    `INSERT INTO shoutout_values (shoutout_id, value_id, position) ` +
+      `SELECT ${q(id)}, 'value_${pick(values)}', 1 WHERE EXISTS (SELECT 1 FROM shoutouts WHERE id = ${q(id)}) ` +
+      `ON CONFLICT DO NOTHING;`,
+  );
+}
+
 // A few conversations, added after the shoutouts so the rest of the data stays the same.
 for (let i = 0; i < COUNT; i++) {
   if (rand() >= 0.2) continue;

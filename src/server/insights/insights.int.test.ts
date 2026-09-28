@@ -45,7 +45,7 @@ describe("leaderboards and analytics (postgres)", () => {
         {
           recipientIds: recipients,
           cardId: extra.cardId ?? CARD_ID,
-          valueId: extra.valueId ?? VALUE_ID,
+          valueIds: [extra.valueId ?? VALUE_ID],
           message: "Thanks",
           visibility: extra.visibility ?? "PUBLIC",
         },

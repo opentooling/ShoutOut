@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatDayCount,
   formatDayMonth,
+  formatList,
   formatMonthYear,
   formatPoints,
   formatRelativeTime,
@@ -57,5 +58,14 @@ describe("formatPoints", () => {
     expect(formatPoints(1)).toBe("1 point");
     expect(formatPoints(0)).toBe("0 points");
     expect(formatPoints(25)).toBe("25 points");
+  });
+});
+
+describe("formatList", () => {
+  it("joins with commas and a final and", () => {
+    expect(formatList([])).toBe("");
+    expect(formatList(["A"])).toBe("A");
+    expect(formatList(["A", "B"])).toBe("A and B");
+    expect(formatList(["A", "B", "C"])).toBe("A, B and C");
   });
 });

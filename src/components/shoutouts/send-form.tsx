@@ -26,6 +26,10 @@ export interface SendFormProps {
   /** Points mode, when on: points left to give and the amounts to choose from. */
   points?: { remaining: number; choices: number[] } | null;
   maxRecipients: number;
+  /** Most company values per shoutout. */
+  maxValues: number;
+  /** People already picked when the form opens, e.g. from "Recognise X" on a profile. */
+  initialRecipients?: Person[];
   maxMessageLength: number;
   search?: SearchPeople;
 }
@@ -38,20 +42,23 @@ export function SendShoutoutForm({
   remaining,
   points: pointsMode = null,
   maxRecipients,
+  maxValues,
+  initialRecipients = [],
   maxMessageLength,
   search,
 }: SendFormProps) {
   const [state, formAction, pending] = useActionState(action, { status: "idle" });
-  const [recipients, setRecipients] = useState<Person[]>([]);
+  const [recipients, setRecipients] = useState<Person[]>(initialRecipients);
   const [cardId, setCardId] = useState(cards[0]?.id ?? "");
-  const [valueId, setValueId] = useState("");
+  const [valueIds, setValueIds] = useState<string[]>([]);
   const [message, setMessage] = useState("");
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PUBLIC");
   const [points, setPoints] = useState(0);
 
   const errors = state.status === "error" ? state.fieldErrors : {};
   const card = cards.find((c) => c.id === cardId);
-  const value = values.find((v) => v.id === valueId);
+  // In the order picked; the ids always come from `values`.
+  const pickedValues = valueIds.map((id) => values.find((v) => v.id === id)!.name);
   const overBudget = remaining !== null && recipients.length > remaining;
   const pointsCost = points * recipients.length;
   const overPoints = pointsMode !== null && pointsCost > pointsMode.remaining;
@@ -91,7 +98,13 @@ export function SendShoutoutForm({
           search={search}
         />
         <CardPicker cards={cards} value={cardId} onChange={setCardId} error={errors.cardId} />
-        <ValuePicker values={values} value={valueId} onChange={setValueId} error={errors.valueId} />
+        <ValuePicker
+          values={values}
+          value={valueIds}
+          onChange={setValueIds}
+          max={maxValues}
+          error={errors.valueIds}
+        />
         <MessageField
           value={message}
           onChange={setMessage}
@@ -118,7 +131,7 @@ export function SendShoutoutForm({
             design={card.design}
             from={senderName}
             to={recipients.length ? recipients.map((r) => r.name) : ["…"]}
-            value={value?.name}
+            values={pickedValues}
             message={message.trim() || "Your message will appear here."}
             meta={
               points > 0 ? (

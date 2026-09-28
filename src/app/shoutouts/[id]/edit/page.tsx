@@ -5,7 +5,7 @@ import { updateShoutoutAction } from "@/app/actions/shoutouts";
 import { toCardDesign } from "@/components/cards/designs";
 import { AppHeader } from "@/components/layout/app-header";
 import { EditShoutoutForm } from "@/components/shoutouts/edit-form";
-import { MESSAGE_MAX_LENGTH } from "@/lib/config";
+import { loadConfig, MESSAGE_MAX_LENGTH } from "@/lib/config";
 import { getDb } from "@/lib/db";
 import { listActiveCards, listActiveValues } from "@/server/shoutouts/catalog";
 import { getVisibleShoutout } from "@/server/shoutouts/feed";
@@ -29,9 +29,8 @@ export default async function EditShoutoutPage({ params }: PageProps<"/shoutouts
   const cardOptions = cards.some((c) => c.id === shoutout.card.id)
     ? cards
     : [shoutout.card, ...cards];
-  const valueOptions = values.some((v) => v.id === shoutout.value.id)
-    ? values
-    : [shoutout.value, ...values];
+  const retired = shoutout.values.filter((kept) => !values.some((v) => v.id === kept.id));
+  const valueOptions = [...retired, ...values];
 
   return (
     <>
@@ -49,11 +48,12 @@ export default async function EditShoutoutPage({ params }: PageProps<"/shoutouts
             values={valueOptions}
             initial={{
               cardId: shoutout.card.id,
-              valueId: shoutout.value.id,
+              valueIds: shoutout.values.map((value) => value.id),
               message: shoutout.message,
               visibility: shoutout.visibility,
             }}
             maxMessageLength={MESSAGE_MAX_LENGTH}
+            maxValues={loadConfig().maxValues}
           />
         </div>
       </main>

@@ -26,7 +26,7 @@ describe("reactions and comments (postgres)", () => {
       sendShoutout(
         db,
         alice.id,
-        { recipientIds: [bob.id], cardId: CARD_ID, valueId: VALUE_ID, message, visibility },
+        { recipientIds: [bob.id], cardId: CARD_ID, valueIds: [VALUE_ID], message, visibility },
         config,
       );
     return {
@@ -145,7 +145,7 @@ describe("reactions and comments (postgres)", () => {
           {
             recipientIds: [recipientId],
             cardId: CARD_ID,
-            valueId: VALUE_ID,
+            valueIds: [VALUE_ID],
             message: "Plain",
             visibility: "PUBLIC",
             ...extra,
@@ -153,7 +153,7 @@ describe("reactions and comments (postgres)", () => {
           config,
           at(day),
         );
-      await make(carol.id, dave.id, 10, { message: "Unicorn work", valueId: OTHER_VALUE_ID });
+      await make(carol.id, dave.id, 10, { message: "Unicorn work", valueIds: [OTHER_VALUE_ID] });
       await make(dave.id, bob.id, 12, { cardId: OTHER_CARD_ID });
       await make(bob.id, carol.id, 14);
 

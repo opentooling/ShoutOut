@@ -34,7 +34,7 @@ export function FeedItemCard({
       design={toCardDesign(item.card)}
       from={profileLink(item.sender)}
       to={item.recipients.map(profileLink)}
-      value={item.value.name}
+      values={item.values.map((value) => value.name)}
       message={item.message}
       meta={
         <p className="flex items-center gap-2 text-sm text-muted">

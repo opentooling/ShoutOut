@@ -26,7 +26,7 @@ describe("profiles (postgres)", () => {
         {
           recipientIds: [recipientId],
           cardId: CARD_ID,
-          valueId,
+          valueIds: [valueId],
           message: `${visibility} thanks`,
           visibility,
         },

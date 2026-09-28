@@ -80,7 +80,7 @@ describe("email notifications (postgres)", () => {
       {
         recipientIds,
         cardId: CARD_ID,
-        valueId: VALUE_ID,
+        valueIds: [VALUE_ID],
         message: "You <3 saved the demo",
         visibility: "PUBLIC",
       },
@@ -289,7 +289,7 @@ describe("email notifications (postgres)", () => {
         {
           recipientIds: [bob.id],
           cardId: CARD_ID,
-          valueId: VALUE_ID,
+          valueIds: [VALUE_ID],
           message: "Hi",
           visibility: "PUBLIC",
           points: 10,
@@ -310,7 +310,7 @@ describe("email notifications (postgres)", () => {
         {
           recipientIds: [bob.id],
           cardId: CARD_ID,
-          valueId: VALUE_ID,
+          valueIds: [VALUE_ID],
           message: "Hi",
           visibility: "PUBLIC",
           points: 10,
@@ -326,7 +326,7 @@ describe("email notifications (postgres)", () => {
           {
             recipientIds: [recipient],
             cardId: CARD_ID,
-            valueId: VALUE_ID,
+            valueIds: [VALUE_ID],
             message: "Hi",
             visibility: "PUBLIC",
             points: 10,

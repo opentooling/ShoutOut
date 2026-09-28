@@ -47,7 +47,9 @@ export async function getProfile(
         (SELECT COUNT(*)::int FROM shoutouts s WHERE ${visible} AND ${tabWhere(personId, "sent")}) AS sent`),
     db.rows<{ name: string; count: number }>(sql`
       SELECT v.name, COUNT(*)::int AS count
-      FROM shoutouts s JOIN company_values v ON v.id = s.value_id
+      FROM shoutouts s
+      JOIN shoutout_values sv ON sv.shoutout_id = s.id
+      JOIN company_values v ON v.id = sv.value_id
       WHERE ${received}
       GROUP BY v.id, v.name
       ORDER BY count DESC, v.name ASC

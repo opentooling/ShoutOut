@@ -41,7 +41,7 @@ describe("points (postgres)", () => {
       {
         recipientIds,
         cardId: CARD_ID,
-        valueId: VALUE_ID,
+        valueIds: [VALUE_ID],
         message: "Thanks!",
         visibility: "PUBLIC",
         points: amount,

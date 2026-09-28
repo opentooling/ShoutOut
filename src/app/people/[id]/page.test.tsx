@@ -71,7 +71,7 @@ describe("ProfilePage", () => {
     expect(screen.getByRole("heading", { name: "Bob Baker" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Recognise Bob" })).toHaveAttribute(
       "href",
-      "/shoutouts/new",
+      "/shoutouts/new?to=u2",
     );
     expect(screen.getByText("Shoutouts received").nextSibling).toHaveTextContent("3");
     expect(screen.getByText("#Integrity")).toBeInTheDocument();

@@ -49,7 +49,7 @@ const shoutout = {
     illustration: "heart",
     tone: "coral",
   },
-  value: { id: "v1", name: "Integrity" },
+  values: [{ id: "v1", name: "Integrity" }],
   recipients: [
     { id: "u2", name: "Bob" },
     { id: "u3", name: "Carol" },
@@ -87,7 +87,7 @@ describe("EditShoutoutPage", () => {
     const formProps = EditShoutoutForm.mock.calls[0][0];
     expect(formProps.initial).toEqual({
       cardId: "c1",
-      valueId: "v1",
+      valueIds: ["v1"],
       message: "Thanks",
       visibility: "PRIVATE",
     });
@@ -99,7 +99,7 @@ describe("EditShoutoutPage", () => {
     getVisibleShoutout.mockResolvedValue({
       ...shoutout,
       card: { ...shoutout.card, id: "old-card", slug: "old" },
-      value: { id: "old-value", name: "Old value" },
+      values: [{ id: "old-value", name: "Old value" }],
     });
     render(await EditShoutoutPage(props));
     const formProps = EditShoutoutForm.mock.calls[0][0];

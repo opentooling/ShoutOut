@@ -191,7 +191,8 @@ export async function setCardActive(db: Db, adminId: string, id: string, active:
 export function listAllValues(db: Db) {
   return db.rows<ValueRecord & { uses: number }>(sql`
     SELECT ${VALUE_COLUMNS},
-      (SELECT COUNT(*)::int FROM shoutouts s WHERE s.value_id = company_values.id AND s.deleted_at IS NULL) AS uses
+      (SELECT COUNT(*)::int FROM shoutout_values sv JOIN shoutouts s ON s.id = sv.shoutout_id
+        WHERE sv.value_id = company_values.id AND s.deleted_at IS NULL) AS uses
     FROM company_values ORDER BY sort_order ASC, name ASC`);
 }
 

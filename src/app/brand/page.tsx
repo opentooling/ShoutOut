@@ -142,14 +142,14 @@ export default async function BrandPage() {
             design={findCardDesign("above-and-beyond")!}
             from="Alice Anders"
             to={["Bob Baker"]}
-            value="Ownership"
+            values={["Ownership"]}
             message="Thanks for staying late to get the release over the line. The whole team noticed!"
           />
           <ShoutoutCard
             design={findCardDesign("welcome-aboard")!}
             from="Carol Chen"
             to={["Dave Diaz", "Erin Evans", "Frank Fischer"]}
-            value="Teamwork"
+            values={["Teamwork"]}
             message="Welcome to the team! We're so happy to have you with us."
           />
         </div>

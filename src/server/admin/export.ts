@@ -20,7 +20,7 @@ interface ShoutoutExportRow {
   recipientEmails: string;
   recipientCount: number;
   card: string;
-  value: string;
+  values: string;
   visibility: string;
   message: string;
   points: number;
@@ -38,7 +38,9 @@ export async function exportShoutoutsCsv(db: Db, range: DateRange): Promise<stri
       COALESCE((SELECT string_agg(ru.email, '; ' ORDER BY ru.name, ru.id) FROM shoutout_recipients rr
         JOIN users ru ON ru.id = rr.user_id WHERE rr.shoutout_id = s.id), '') AS "recipientEmails",
       (SELECT COUNT(*)::int FROM shoutout_recipients rr WHERE rr.shoutout_id = s.id) AS "recipientCount",
-      c.title AS card, v.name AS value, lower(s.visibility::text) AS visibility,
+      c.title AS card, (SELECT string_agg(cv.name, '; ' ORDER BY sv.position) FROM shoutout_values sv
+        JOIN company_values cv ON cv.id = sv.value_id WHERE sv.shoutout_id = s.id) AS "values",
+      lower(s.visibility::text) AS visibility,
       CASE WHEN s.visibility = 'PUBLIC' THEN s.message ELSE '[private]' END AS message,
       s.points,
       (SELECT COUNT(*)::int FROM reactions re WHERE re.shoutout_id = s.id) AS reactions,
@@ -47,7 +49,6 @@ export async function exportShoutoutsCsv(db: Db, range: DateRange): Promise<stri
     FROM shoutouts s
     JOIN users u ON u.id = s.sender_id
     JOIN cards c ON c.id = s.card_id
-    JOIN company_values v ON v.id = s.value_id
     WHERE ${rangeSql(range)}
     ORDER BY s.created_at ASC, s.id ASC`);
   return toCsv(rows, [
@@ -59,7 +60,7 @@ export async function exportShoutoutsCsv(db: Db, range: DateRange): Promise<stri
     { header: "recipient_emails", value: (r) => r.recipientEmails },
     { header: "recipient_count", value: (r) => r.recipientCount },
     { header: "card", value: (r) => r.card },
-    { header: "value", value: (r) => r.value },
+    { header: "values", value: (r) => r.values },
     { header: "visibility", value: (r) => r.visibility },
     { header: "message", value: (r) => r.message },
     { header: "points_per_recipient", value: (r) => r.points },

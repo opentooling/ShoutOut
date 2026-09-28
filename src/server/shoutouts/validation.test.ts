@@ -4,13 +4,13 @@ import { editShoutoutSchema, fieldErrors, sendShoutoutSchema } from "./validatio
 const valid = {
   recipientIds: ["a", "b"],
   cardId: "card",
-  valueId: "value",
+  valueIds: ["value"],
   message: "  Thanks!  ",
   visibility: "PUBLIC",
 };
 
 describe("sendShoutoutSchema", () => {
-  const schema = sendShoutoutSchema(3);
+  const schema = sendShoutoutSchema(3, 2);
 
   it("accepts and normalises valid input", () => {
     expect(schema.parse({ ...valid, recipientIds: ["a", "b", "a"] })).toEqual({
@@ -34,7 +34,7 @@ describe("sendShoutoutSchema", () => {
     const result = schema.safeParse({
       recipientIds: [],
       cardId: "",
-      valueId: "",
+      valueIds: [],
       message: "   ",
       visibility: "SECRET",
     });
@@ -42,7 +42,7 @@ describe("sendShoutoutSchema", () => {
     expect(fieldErrors(result.error!)).toEqual({
       recipientIds: "Pick at least one person",
       cardId: "Pick a card",
-      valueId: "Pick a company value",
+      valueIds: "Pick a company value",
       message: "Write a short message",
       visibility: expect.any(String),
     });
@@ -62,10 +62,27 @@ describe("sendShoutoutSchema", () => {
   });
 });
 
+describe("values", () => {
+  it("takes up to the configured number, without repeats, in order", () => {
+    const parse = (ids: string[], max = 2) =>
+      sendShoutoutSchema(3, max).safeParse({ ...valid, valueIds: ids });
+    expect(parse(["b", "a", "b"]).data?.valueIds).toEqual(["b", "a"]);
+    expect(fieldErrors(parse(["a", "b", "c"]).error!)).toEqual({
+      valueIds: "Pick up to 2 company values",
+    });
+    expect(fieldErrors(parse(["a", "b"], 1).error!)).toEqual({
+      valueIds: "Pick one company value",
+    });
+    expect(
+      fieldErrors(editShoutoutSchema(1).safeParse({ ...valid, valueIds: [""] }).error!),
+    ).toHaveProperty("valueIds");
+  });
+});
+
 describe("editShoutoutSchema", () => {
   it("does not include recipients", () => {
     const { recipientIds: _ignored, ...edit } = valid;
-    expect(editShoutoutSchema.parse({ ...edit, visibility: "PRIVATE" })).toEqual({
+    expect(editShoutoutSchema(2).parse({ ...edit, visibility: "PRIVATE" })).toEqual({
       ...edit,
       message: "Thanks!",
       visibility: "PRIVATE",

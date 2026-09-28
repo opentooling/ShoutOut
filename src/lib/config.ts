@@ -20,6 +20,8 @@ export interface AppConfig {
   points: PointsConfig;
   /** Maximum people in a single shoutout. */
   maxRecipients: number;
+  /** Maximum company values on a single shoutout (1 means pick one). */
+  maxValues: number;
   /** Who can open the analytics dashboard. */
   analyticsVisibility: AnalyticsVisibility;
 }
@@ -29,6 +31,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   quarterlyBudget: 20,
   points: { enabled: false, quarterlyBudget: 100, choices: [5, 10, 25, 50] },
   maxRecipients: 5,
+  maxValues: 3,
   analyticsVisibility: "admins",
 };
 
@@ -91,6 +94,11 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       env.SHOUTOUT_MAX_RECIPIENTS,
       "SHOUTOUT_MAX_RECIPIENTS",
       DEFAULT_CONFIG.maxRecipients,
+    ),
+    maxValues: positiveInt(
+      env.SHOUTOUT_MAX_VALUES,
+      "SHOUTOUT_MAX_VALUES",
+      DEFAULT_CONFIG.maxValues,
     ),
     analyticsVisibility: oneOf(
       env.SHOUTOUT_ANALYTICS_VISIBILITY,

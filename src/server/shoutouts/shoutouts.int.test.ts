@@ -44,7 +44,7 @@ describe("shoutouts (postgres)", () => {
       {
         recipientIds,
         cardId: CARD_ID,
-        valueId: VALUE_ID,
+        valueIds: [VALUE_ID],
         message: "Thanks!",
         visibility: "PUBLIC",
         ...extra,
@@ -162,7 +162,7 @@ describe("shoutouts (postgres)", () => {
         shoutout.id,
         {
           cardId: OTHER_CARD_ID,
-          valueId: OTHER_VALUE_ID,
+          valueIds: [OTHER_VALUE_ID],
           message: "Even better",
           visibility: "PRIVATE",
         },
@@ -170,11 +170,37 @@ describe("shoutouts (postgres)", () => {
       );
       expect(updated).toMatchObject({
         cardId: OTHER_CARD_ID,
-        valueId: OTHER_VALUE_ID,
         message: "Even better",
         visibility: "PRIVATE",
         editedAt: later(EDIT_WINDOW_MS),
       });
+    });
+
+    it("keeps several values in the order picked, and edits them", async () => {
+      const { alice, bob } = await people();
+      const shoutout = await send(alice.id, [bob.id], {
+        valueIds: [OTHER_VALUE_ID, VALUE_ID, OTHER_VALUE_ID],
+      });
+      const names = async () =>
+        (await getVisibleShoutout(db, alice.id, shoutout.id, now))!.values.map((v) => v.name);
+      expect(await names()).toEqual(["Collaboration", "Integrity"]);
+
+      await updateShoutout(
+        db,
+        alice.id,
+        shoutout.id,
+        {
+          cardId: CARD_ID,
+          valueIds: [VALUE_ID, "value_excellence"],
+          message: "Thanks",
+          visibility: "PUBLIC",
+        },
+        now,
+      );
+      expect(await names()).toEqual(["Integrity", "Excellence"]);
+      await expect(
+        send(alice.id, [bob.id], { valueIds: [VALUE_ID, "value_missing"] }),
+      ).rejects.toMatchObject({ code: "VALUE_NOT_FOUND", field: "valueIds" });
     });
 
     it("keeps a retired card or value but won't switch to one", async () => {
@@ -184,7 +210,7 @@ describe("shoutouts (postgres)", () => {
       await setCatalogActive(db, "company_values", false, { only: VALUE_ID });
       const edit = {
         cardId: CARD_ID,
-        valueId: VALUE_ID,
+        valueIds: [VALUE_ID],
         message: "Still thanks",
         visibility: "PUBLIC" as const,
       };
@@ -198,7 +224,7 @@ describe("shoutouts (postgres)", () => {
       ).rejects.toMatchObject({ code: "CARD_NOT_FOUND" });
       await setCatalogActive(db, "company_values", false, { only: OTHER_VALUE_ID });
       await expect(
-        updateShoutout(db, alice.id, shoutout.id, { ...edit, valueId: OTHER_VALUE_ID }, now),
+        updateShoutout(db, alice.id, shoutout.id, { ...edit, valueIds: [OTHER_VALUE_ID] }, now),
       ).rejects.toMatchObject({ code: "VALUE_NOT_FOUND" });
     });
 
@@ -207,7 +233,7 @@ describe("shoutouts (postgres)", () => {
       const shoutout = await send(alice.id, [bob.id]);
       const edit = {
         cardId: CARD_ID,
-        valueId: VALUE_ID,
+        valueIds: [VALUE_ID],
         message: "x",
         visibility: "PUBLIC" as const,
       };
@@ -269,7 +295,7 @@ describe("shoutouts (postgres)", () => {
       expect(visible).toMatchObject({
         message: "Public thanks",
         card: { slug: "thank-you", title: "Thank You" },
-        value: { name: "Integrity" },
+        values: [{ name: "Integrity" }],
         sender: { id: alice.id, name: "Alice" },
         recipients: [{ id: bob.id, name: "Bob" }],
         canModify: true,

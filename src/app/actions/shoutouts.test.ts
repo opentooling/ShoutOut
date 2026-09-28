@@ -38,7 +38,7 @@ function form(entries: Record<string, string | string[]>) {
 const validSend = {
   recipientIds: ["u2", "u3"],
   cardId: "card",
-  valueId: "value",
+  valueIds: ["value", "other"],
   message: " Thanks! ",
   visibility: "PRIVATE",
 };
@@ -74,7 +74,7 @@ describe("shoutout actions", () => {
         {
           recipientIds: ["u2", "u3"],
           cardId: "card",
-          valueId: "value",
+          valueIds: ["value", "other"],
           message: "Thanks!",
           visibility: "PRIVATE",
           points: 0,
@@ -102,7 +102,7 @@ describe("shoutout actions", () => {
         fieldErrors: {
           recipientIds: "You can recognise up to 2 people at once",
           cardId: "Pick a card",
-          valueId: "Pick a company value",
+          valueIds: "Pick a company value",
           message: "Write a short message",
         },
       });
@@ -146,7 +146,7 @@ describe("shoutout actions", () => {
       );
       expect(updateShoutout).toHaveBeenCalledWith({ db: true }, "u1", "s1", {
         cardId: "card",
-        valueId: "value",
+        valueIds: ["value", "other"],
         message: "Thanks!",
         visibility: "PRIVATE",
       });

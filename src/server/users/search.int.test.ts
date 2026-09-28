@@ -45,6 +45,7 @@ describe("searchPeople (postgres)", () => {
       id: percent.id,
       name: "100% Pat",
       email: "p@acme.io",
+      active: true,
     });
     expect(await findPerson(db, "missing")).toBeNull();
   });

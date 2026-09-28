@@ -19,7 +19,7 @@ describe("ShoutoutCard", () => {
         design={findCardDesign("thank-you")!}
         from="Alice Anders"
         to={["Bob Baker", "Carol Chen"]}
-        value="Teamwork"
+        values={["Teamwork", "Ownership"]}
         message="You two are brilliant."
       />,
     );

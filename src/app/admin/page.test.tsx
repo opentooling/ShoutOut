@@ -40,7 +40,7 @@ const makeCase = (id: string, overrides: Partial<ModerationCase> = {}): Moderati
       illustration: "heart",
       tone: "coral",
     },
-    value: { id: "v", name: "Integrity" },
+    values: [{ id: "v", name: "Integrity" }],
     sender: { id: "u1", name: "Bob" },
     recipients: [{ id: "u2", name: "Carol" }],
     reactions: [],

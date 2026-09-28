@@ -13,7 +13,12 @@ const values = [
   { id: "v1", name: "Integrity" },
   { id: "v2", name: "Diversity" },
 ];
-const initial = { cardId: "c1", valueId: "v1", message: "Thanks", visibility: "PUBLIC" as const };
+const initial = {
+  cardId: "c1",
+  valueIds: ["v1"],
+  message: "Thanks",
+  visibility: "PUBLIC" as const,
+};
 
 describe("EditShoutoutForm", () => {
   it("starts from the current shoutout and submits changes", async () => {
@@ -27,6 +32,7 @@ describe("EditShoutoutForm", () => {
         values={values}
         initial={initial}
         maxMessageLength={280}
+        maxValues={2}
       />,
     );
     expect(screen.getByRole("radio", { name: "Thank You" })).toBeChecked();
@@ -38,9 +44,10 @@ describe("EditShoutoutForm", () => {
     await userEvent.click(screen.getByText("Private"));
     await userEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
-    expect(Object.fromEntries(action.mock.calls[0][1].entries())).toEqual({
+    const data = action.mock.calls[0][1];
+    expect(data.getAll("valueIds")).toEqual(["v1", "v2"]);
+    expect(Object.fromEntries([...data.entries()].filter(([key]) => key !== "valueIds"))).toEqual({
       cardId: "c2",
-      valueId: "v2",
       message: "Thanks so much",
       visibility: "PRIVATE",
     });
@@ -60,6 +67,7 @@ describe("EditShoutoutForm", () => {
         values={values}
         initial={initial}
         maxMessageLength={280}
+        maxValues={2}
       />,
     );
     await userEvent.click(screen.getByRole("button", { name: "Save changes" }));

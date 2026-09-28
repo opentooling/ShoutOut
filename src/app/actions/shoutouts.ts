@@ -30,6 +30,10 @@ function text(formData: FormData, name: string): string {
   return typeof value === "string" ? value : "";
 }
 
+function strings(formData: FormData, name: string): string[] {
+  return formData.getAll(name).filter((v): v is string => typeof v === "string");
+}
+
 function domainFailure(error: unknown): FormState {
   if (error instanceof DomainError) {
     return {
@@ -44,10 +48,10 @@ function domainFailure(error: unknown): FormState {
 export async function sendShoutoutAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const userId = await requireUserId();
   const config = loadConfig();
-  const parsed = sendShoutoutSchema(config.maxRecipients).safeParse({
-    recipientIds: formData.getAll("recipientIds").filter((v) => typeof v === "string"),
+  const parsed = sendShoutoutSchema(config.maxRecipients, config.maxValues).safeParse({
+    recipientIds: strings(formData, "recipientIds"),
     cardId: text(formData, "cardId"),
-    valueId: text(formData, "valueId"),
+    valueIds: strings(formData, "valueIds"),
     message: text(formData, "message"),
     visibility: text(formData, "visibility") || "PUBLIC",
     points: text(formData, "points"),
@@ -73,9 +77,9 @@ export async function updateShoutoutAction(
   formData: FormData,
 ): Promise<FormState> {
   const userId = await requireUserId();
-  const parsed = editShoutoutSchema.safeParse({
+  const parsed = editShoutoutSchema(loadConfig().maxValues).safeParse({
     cardId: text(formData, "cardId"),
-    valueId: text(formData, "valueId"),
+    valueIds: strings(formData, "valueIds"),
     message: text(formData, "message"),
     visibility: text(formData, "visibility") || "PUBLIC",
   });

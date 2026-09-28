@@ -61,6 +61,38 @@ test.describe("sending shoutouts", () => {
     }
   });
 
+  test("a shoutout can celebrate several values", async ({ page }) => {
+    await signInAs(page, "henry");
+    const message = e2eMessage("Thanks for pairing on the migration");
+    await sendShoutout(page, {
+      to: ["Frank Fischer"],
+      value: ["Collaboration", "Excellence"],
+      message,
+    });
+    const item = feedItem(page, message);
+    await expect(item).toContainText("#Collaboration");
+    await expect(item).toContainText("#Excellence");
+
+    page.once("dialog", (dialog) => dialog.accept());
+    await item.getByRole("button", { name: "Delete" }).click();
+    await expect(page.getByRole("status")).toHaveText(/deleted/i);
+  });
+
+  test("Recognise on a profile starts a shoutout to that person", async ({ page }) => {
+    await signInAs(page, "grace");
+    await page.goto("/people");
+    await page.getByRole("searchbox").fill("Carol");
+    await expect(page.getByText("1 person found")).toBeVisible();
+    await page
+      .getByRole("link", { name: /Carol Chen/ })
+      .first()
+      .click();
+    await page.getByRole("link", { name: "Recognise Carol" }).click();
+    await expect(page.getByRole("heading", { name: "Send a shoutout" })).toBeVisible();
+    await expect(page.locator('input[name="recipientIds"]')).toHaveCount(1);
+    await expect(page.getByRole("article")).toContainText("To Carol Chen");
+  });
+
   test("the sender can edit a shoutout", async ({ page }) => {
     await signInAs(page, "erin");
     const message = e2eMessage("Great support call");

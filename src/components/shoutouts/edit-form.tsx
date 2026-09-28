@@ -18,11 +18,13 @@ export interface EditFormProps {
   values: { id: string; name: string }[];
   initial: {
     cardId: string;
-    valueId: string;
+    valueIds: string[];
     message: string;
     visibility: "PUBLIC" | "PRIVATE";
   };
   maxMessageLength: number;
+  /** Most company values per shoutout. */
+  maxValues: number;
 }
 
 export function EditShoutoutForm({
@@ -31,10 +33,11 @@ export function EditShoutoutForm({
   values,
   initial,
   maxMessageLength,
+  maxValues,
 }: EditFormProps) {
   const [state, formAction, pending] = useActionState(action, { status: "idle" });
   const [cardId, setCardId] = useState(initial.cardId);
-  const [valueId, setValueId] = useState(initial.valueId);
+  const [valueIds, setValueIds] = useState(initial.valueIds);
   const [message, setMessage] = useState(initial.message);
   const [visibility, setVisibility] = useState(initial.visibility);
   const errors = state.status === "error" ? state.fieldErrors : {};
@@ -47,7 +50,14 @@ export function EditShoutoutForm({
         </p>
       )}
       <CardPicker cards={cards} value={cardId} onChange={setCardId} error={errors.cardId} />
-      <ValuePicker values={values} value={valueId} onChange={setValueId} error={errors.valueId} />
+      <ValuePicker
+        values={values}
+        value={valueIds}
+        onChange={setValueIds}
+        // A shoutout sent before the limit was lowered keeps what it has.
+        max={Math.max(maxValues, initial.valueIds.length)}
+        error={errors.valueIds}
+      />
       <MessageField
         value={message}
         onChange={setMessage}

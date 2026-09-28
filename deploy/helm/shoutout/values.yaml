@@ -58,6 +58,8 @@ config:
   quarterlyBudget: 20
   # -- Maximum recipients in one shoutout (SHOUTOUT_MAX_RECIPIENTS).
   maxRecipients: 5
+  # -- Maximum company values on one shoutout (SHOUTOUT_MAX_VALUES); 1 means pick exactly one.
+  maxValues: 3
   # -- Who can open the analytics dashboard: "admins" or "everyone" (SHOUTOUT_ANALYTICS_VISIBILITY).
   # The "not recognised recently" list is always admin-only.
   analyticsVisibility: admins

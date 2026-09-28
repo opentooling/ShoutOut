@@ -34,6 +34,9 @@ export function searchPeople(
     LIMIT ${limit}`);
 }
 
-export function findPerson(db: Db, id: string): Promise<PersonSummary | null> {
-  return db.one<PersonSummary>(sql`SELECT id, name, email FROM users WHERE id = ${id}`);
+export function findPerson(
+  db: Db,
+  id: string,
+): Promise<(PersonSummary & { active: boolean }) | null> {
+  return db.one(sql`SELECT id, name, email, active FROM users WHERE id = ${id}`);
 }

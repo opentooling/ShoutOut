@@ -21,9 +21,13 @@ export async function signInAs(page: Page, username: string) {
 
 /** Picks a card/value/visibility option by clicking its visible label, like a user would. */
 export async function choose(page: Page, name: string | RegExp) {
-  const radio = page.getByRole("radio", { name, exact: typeof name === "string" });
-  await page.locator("label", { has: radio }).click();
-  await expect(radio).toBeChecked();
+  const exact = typeof name === "string";
+  // Values are checkboxes when several can be picked; everything else is a radio.
+  const option = page
+    .getByRole("radio", { name, exact })
+    .or(page.getByRole("checkbox", { name, exact }));
+  await page.locator("label", { has: option }).click();
+  await expect(option).toBeChecked();
 }
 
 /** Unique, cleanup-friendly message text. */
@@ -47,7 +51,7 @@ export async function sendShoutout(
   }: {
     to: string[];
     card?: string;
-    value?: string;
+    value?: string | string[];
     message: string;
     visibility?: "Public" | "Private";
   },
@@ -59,7 +63,7 @@ export async function sendShoutout(
     await page.getByRole("option", { name: new RegExp(name) }).click();
   }
   await choose(page, card);
-  await choose(page, value);
+  for (const name of [value].flat()) await choose(page, name);
   await page.getByLabel("Say thanks").fill(message);
   await choose(page, new RegExp(`^${visibility}`));
   await page.getByRole("button", { name: "Send shoutout" }).click();

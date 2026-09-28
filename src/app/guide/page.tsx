@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@/auth";
+import { GuideToc } from "@/components/guide/guide-toc";
 import { RichText } from "@/components/guide/rich-text";
 import { SiteHeader } from "@/components/layout/site-header";
 import screenshots from "@/content/guide-screenshots.json";
@@ -78,20 +79,6 @@ function Section({ section }: { section: ResolvedGuideSection }) {
   );
 }
 
-function Contents({ sections }: { sections: ResolvedGuideSection[] }) {
-  return (
-    <ol className="mt-2 space-y-1">
-      {sections.map((s) => (
-        <li key={s.id}>
-          <a href={`#${s.id}`} className="font-bold text-teal-strong hover:underline">
-            {s.title}
-          </a>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
 export default async function GuidePage() {
   const session = await auth();
   // Only the features this installation uses.
@@ -100,46 +87,43 @@ export default async function GuidePage() {
   const everyone = sections.filter((s) => s.audience === "everyone");
   const admins = sections.filter((s) => s.audience === "admins");
 
+  const groups = [
+    { title: "Using ShoutOut", items: everyone },
+    { title: "For admins", items: admins },
+  ].filter((group) => group.items.length > 0);
+
   return (
     <>
       <SiteHeader user={session?.user} />
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-8 sm:px-6">
-        <div className="text-center">
-          <h1 className="font-display text-4xl font-semibold">{GUIDE_TITLE}</h1>
-          <p className="mx-auto mt-3 max-w-xl text-lg text-muted">{GUIDE_INTRO}</p>
-          <p className="mt-2 text-sm text-muted">
-            Wondering why it works the way it does?{" "}
-            <Link href="/about" className="font-bold text-teal-strong hover:underline">
-              Read about ShoutOut
-            </Link>
-            .
-          </p>
-        </div>
-
-        <nav
-          aria-label="Guide contents"
-          className="grid gap-6 rounded-[var(--radius-card)] border-2 border-border bg-surface p-6 sm:grid-cols-2"
-        >
+      <div className="mx-auto grid w-full max-w-6xl flex-1 items-start gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-10">
+        <GuideToc
+          groups={groups.map((group) => ({
+            title: group.title,
+            items: group.items.map(({ id, title }) => ({ id, title })),
+          }))}
+        />
+        <main className="min-w-0 space-y-6">
           <div>
-            <h2 className="font-display text-lg font-semibold">Using ShoutOut</h2>
-            <Contents sections={everyone} />
+            <h1 className="font-display text-4xl font-semibold">{GUIDE_TITLE}</h1>
+            <p className="mt-3 max-w-2xl text-lg text-muted">{GUIDE_INTRO}</p>
+            <p className="mt-2 text-sm text-muted">
+              Wondering why it works the way it does?{" "}
+              <Link href="/about" className="font-bold text-teal-strong hover:underline">
+                Read about ShoutOut
+              </Link>
+              .
+            </p>
           </div>
-          <div>
-            <h2 className="font-display text-lg font-semibold">For admins</h2>
-            <Contents sections={admins} />
-          </div>
-        </nav>
-
-        <h2 className="pt-4 font-display text-3xl font-semibold">Using ShoutOut</h2>
-        {everyone.map((section) => (
-          <Section key={section.id} section={section} />
-        ))}
-
-        <h2 className="pt-4 font-display text-3xl font-semibold">For admins</h2>
-        {admins.map((section) => (
-          <Section key={section.id} section={section} />
-        ))}
-      </main>
+          {groups.map((group) => (
+            <div key={group.title} className="space-y-6">
+              <h2 className="pt-4 font-display text-3xl font-semibold">{group.title}</h2>
+              {group.items.map((section) => (
+                <Section key={section.id} section={section} />
+              ))}
+            </div>
+          ))}
+        </main>
+      </div>
     </>
   );
 }

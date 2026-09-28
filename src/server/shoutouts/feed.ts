@@ -23,7 +23,8 @@ export interface FeedItem {
     illustration: string;
     tone: string;
   };
-  value: { id: string; name: string };
+  /** Company values, in the order the sender picked them. */
+  values: { id: string; name: string }[];
   sender: { id: string; name: string };
   recipients: { id: string; name: string }[];
   reactions: ReactionSummary[];
@@ -58,7 +59,7 @@ export interface ShoutoutRow {
   editedAt: Date | null;
   deletedAt: Date | null;
   card: FeedItem["card"];
-  value: FeedItem["value"];
+  values: FeedItem["values"];
   sender: FeedItem["sender"];
   recipients: FeedItem["recipients"];
   reactions: { emoji: string; userId: string; user: { name: string } }[];
@@ -83,7 +84,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export function filtersWhere(filters: FeedFilters): Sql[] {
   const where: Sql[] = [];
   if (filters.personId) where.push(involving(filters.personId));
-  if (filters.valueId) where.push(sql`s.value_id = ${filters.valueId}`);
+  if (filters.valueId) {
+    where.push(sql`EXISTS (SELECT 1 FROM shoutout_values fv
+      WHERE fv.shoutout_id = s.id AND fv.value_id = ${filters.valueId})`);
+  }
   if (filters.cardId) where.push(sql`s.card_id = ${filters.cardId}`);
   if (filters.from) where.push(sql`s.created_at >= ${filters.from}`);
   if (filters.to) where.push(sql`s.created_at < ${new Date(filters.to.getTime() + DAY_MS)}`);
@@ -107,7 +111,10 @@ export function loadShoutoutRows(
       s.deleted_at AS "deletedAt",
       json_build_object('id', c.id, 'slug', c.slug, 'title', c.title, 'tagline', c.tagline,
         'illustration', c.illustration, 'tone', c.tone) AS card,
-      json_build_object('id', v.id, 'name', v.name) AS value,
+      COALESCE((
+        SELECT json_agg(json_build_object('id', cv.id, 'name', cv.name) ORDER BY sv.position)
+        FROM shoutout_values sv JOIN company_values cv ON cv.id = sv.value_id
+        WHERE sv.shoutout_id = s.id), '[]') AS "values",
       json_build_object('id', u.id, 'name', u.name) AS sender,
       COALESCE((
         SELECT json_agg(json_build_object('id', ru.id, 'name', ru.name) ORDER BY ru.name, ru.id)
@@ -122,7 +129,6 @@ export function loadShoutoutRows(
         WHERE cm.shoutout_id = s.id AND cm.deleted_at IS NULL) AS "commentCount"
     FROM shoutouts s
     JOIN cards c ON c.id = s.card_id
-    JOIN company_values v ON v.id = s.value_id
     JOIN users u ON u.id = s.sender_id
     WHERE ${where}
     ORDER BY ${orderBy}
@@ -155,7 +161,7 @@ export function toFeedItem(
     createdAt: row.createdAt,
     editedAt: row.editedAt,
     card: row.card,
-    value: row.value,
+    values: row.values,
     sender: row.sender,
     recipients: row.recipients,
     reactions: summarizeReactions(row.reactions, viewerId),

@@ -1,7 +1,7 @@
 import type { Db } from "@/lib/db";
 import { sql } from "@/lib/sql";
 import { DomainError } from "../errors";
-import { SHOUTOUT_COLUMNS, type ShoutoutRecord } from "./record";
+import { loadValueIds, saveValues, SHOUTOUT_COLUMNS, type ShoutoutRecord } from "./record";
 import type { EditShoutoutInput } from "./validation";
 
 export const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -55,20 +55,26 @@ export async function updateShoutout(
     const card = await db.one(sql`SELECT id FROM cards WHERE id = ${input.cardId} AND active`);
     if (!card) throw new DomainError("CARD_NOT_FOUND", "That card isn't available", "cardId");
   }
-  if (input.valueId !== shoutout.valueId) {
-    const value = await db.one(
-      sql`SELECT id FROM company_values WHERE id = ${input.valueId} AND active`,
+  const valueIds = [...new Set(input.valueIds)];
+  const current = await loadValueIds(db, id);
+  const added = valueIds.filter((valueId) => !current.includes(valueId));
+  if (added.length > 0) {
+    const active = await db.rows(
+      sql`SELECT id FROM company_values WHERE id = ANY(${added}::text[]) AND active`,
     );
-    if (!value) {
-      throw new DomainError("VALUE_NOT_FOUND", "That value isn't available", "valueId");
+    if (active.length !== added.length) {
+      throw new DomainError("VALUE_NOT_FOUND", "That value isn't available", "valueIds");
     }
   }
 
-  return (await db.one<ShoutoutRecord>(sql`
-    UPDATE shoutouts SET card_id = ${input.cardId}, value_id = ${input.valueId},
-      message = ${input.message}, visibility = ${input.visibility}, edited_at = ${now}, updated_at = ${now}
-    WHERE id = ${id}
-    RETURNING ${SHOUTOUT_COLUMNS}`))!;
+  return db.transaction(async (tx) => {
+    await saveValues(tx, id, valueIds);
+    return (await tx.one<ShoutoutRecord>(sql`
+      UPDATE shoutouts SET card_id = ${input.cardId},
+        message = ${input.message}, visibility = ${input.visibility}, edited_at = ${now}, updated_at = ${now}
+      WHERE id = ${id}
+      RETURNING ${SHOUTOUT_COLUMNS}`))!;
+  });
 }
 
 /** Soft-deletes the shoutout; its recipients no longer count against the budget. */

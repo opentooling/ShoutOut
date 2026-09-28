@@ -91,7 +91,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       "Choose **Send a shoutout** on the feed.",
       "Under **Who are you recognising?**, start typing a name and pick the person. Add more people if a group made it happen (up to five).",
       "Pick a **card** that fits the moment.",
-      "Pick the **company value** they showed.",
+      "Pick the **company values** they showed. You can usually pick more than one; the form says how many.",
       "Under **Say thanks**, write what they did and what it changed, in up to 280 characters. The preview on the right shows how it will look.",
       "Choose who can see it: **Public** (everyone) or **Private** (only you and the people you're thanking).",
       "Choose **Send shoutout**. It appears in the feed straight away.",

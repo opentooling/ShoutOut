@@ -68,35 +68,60 @@ export function ValuePicker({
   values,
   value,
   onChange,
+  max,
   error,
 }: {
   values: { id: string; name: string }[];
-  value: string;
-  onChange: (id: string) => void;
+  /** Picked value ids, in the order picked. */
+  value: string[];
+  onChange: (ids: string[]) => void;
+  /** Most values that can be picked; 1 behaves like a single choice. */
+  max: number;
   error?: string;
 }) {
+  const single = max === 1;
+  const full = value.length >= max;
+
+  function toggle(id: string) {
+    // Options can't be picked past the limit: they are disabled once it is reached.
+    if (value.includes(id)) onChange(value.filter((picked) => picked !== id));
+    else onChange(single ? [id] : [...value, id]);
+  }
+
   return (
-    <fieldset aria-describedby={error ? "valueId-error" : undefined}>
-      <legend className="font-display text-xl font-semibold">Which value did they show?</legend>
+    <fieldset
+      aria-describedby={cn(!single && "valueIds-hint", error && "valueIds-error") || undefined}
+    >
+      <legend className="font-display text-xl font-semibold">
+        {single ? "Which value did they show?" : "Which values did they show?"}
+      </legend>
+      {!single && (
+        <p id="valueIds-hint" className="mt-1 text-sm text-muted">
+          Pick up to {max}.
+        </p>
+      )}
       <div className="mt-3 flex flex-wrap gap-2">
         {values.map((option) => {
-          const checked = value === option.id;
+          const checked = value.includes(option.id);
+          const disabled = !single && full && !checked;
           return (
             <label
               key={option.id}
               className={cn(
-                "cursor-pointer rounded-full border-2 px-4 py-2 font-bold transition has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-ring",
+                "rounded-full border-2 px-4 py-2 font-bold transition has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-ring",
                 checked
                   ? "border-teal-strong bg-teal-strong text-white dark:text-ink"
                   : "border-border bg-surface hover:bg-surface-muted",
+                disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
               )}
             >
               <input
-                type="radio"
-                name="valueId"
+                type={single ? "radio" : "checkbox"}
+                name="valueIds"
                 value={option.id}
                 checked={checked}
-                onChange={() => onChange(option.id)}
+                disabled={disabled}
+                onChange={() => toggle(option.id)}
                 className="sr-only"
               />
               {option.name}
@@ -104,7 +129,7 @@ export function ValuePicker({
           );
         })}
       </div>
-      <FieldError id="valueId-error" message={error} />
+      <FieldError id="valueIds-error" message={error} />
     </fieldset>
   );
 }

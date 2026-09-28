@@ -30,6 +30,7 @@ function setup(overrides: Partial<SendFormProps> = {}) {
       senderName="Alice Anders"
       remaining={5}
       maxRecipients={3}
+      maxValues={2}
       maxMessageLength={280}
       search={async () => people}
       {...overrides}
@@ -71,20 +72,29 @@ describe("SendShoutoutForm", () => {
     expect(action).toHaveBeenCalledOnce();
     const data = action.mock.calls[0][1];
     expect(data.getAll("recipientIds")).toEqual(["u2", "u3"]);
-    expect(Object.fromEntries([...data.entries()].filter(([k]) => k !== "recipientIds"))).toEqual({
+    expect(data.getAll("valueIds")).toEqual(["v2"]);
+    const lists = ["recipientIds", "valueIds"];
+    expect(Object.fromEntries([...data.entries()].filter(([k]) => !lists.includes(k)))).toEqual({
       cardId: "c2",
-      valueId: "v2",
       message: "Nailed it",
       visibility: "PRIVATE",
     });
     expect(screen.getByRole("link", { name: "Cancel" })).toHaveAttribute("href", "/");
   });
 
+  it("starts with someone already picked, and shows several values", async () => {
+    setup({ initialRecipients: [people[1]] });
+    expect(screen.getByRole("article")).toHaveTextContent("To Carol Chen");
+    await userEvent.click(screen.getByText("Integrity"));
+    await userEvent.click(screen.getByText("Excellence"));
+    expect(screen.getByRole("article")).toHaveTextContent("#Integrity#Excellence");
+  });
+
   it("shows errors returned by the action", async () => {
     const action = vi.fn(async (): Promise<FormState> => ({
       status: "error",
       message: "Please check the highlighted fields.",
-      fieldErrors: { recipientIds: "Pick at least one person", valueId: "Pick a company value" },
+      fieldErrors: { recipientIds: "Pick at least one person", valueIds: "Pick a company value" },
     }));
     setup({ action });
     await userEvent.click(screen.getByRole("button", { name: "Send shoutout" }));

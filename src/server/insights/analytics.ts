@@ -94,7 +94,8 @@ export function getValueBreakdown(db: Db, range: DateRange): Promise<Breakdown[]
   return db.rows<Breakdown>(sql`
     SELECT v.id, v.name, COUNT(s.id)::int AS count
     FROM company_values v
-    LEFT JOIN shoutouts s ON s.value_id = v.id AND ${rangeSql(range)}
+    LEFT JOIN shoutout_values sv ON sv.value_id = v.id
+    LEFT JOIN shoutouts s ON s.id = sv.shoutout_id AND ${rangeSql(range)}
     WHERE v.active OR s.id IS NOT NULL
     GROUP BY v.id, v.name, v.sort_order
     ORDER BY count DESC, v.sort_order ASC`);

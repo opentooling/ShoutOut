@@ -42,6 +42,12 @@ describe("loadConfig", () => {
     });
   });
 
+  it("reads the value limit", () => {
+    expect(loadConfig({ SHOUTOUT_MAX_VALUES: "1" }).maxValues).toBe(1);
+    expect(DEFAULT_CONFIG.maxValues).toBe(3);
+    expect(() => loadConfig({ SHOUTOUT_MAX_VALUES: "0" })).toThrow(/SHOUTOUT_MAX_VALUES/);
+  });
+
   it("rejects invalid flags and point choices", () => {
     expect(() => loadConfig({ SHOUTOUT_POINTS_ENABLED: "yes" })).toThrow(
       'SHOUTOUT_POINTS_ENABLED must be true or false, got "yes"',

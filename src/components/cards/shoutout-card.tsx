@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/cn";
+import { formatList } from "@/lib/format";
 import { TONE_CLASSES, type CardDesign } from "./designs";
 import { CardIllustration } from "./illustrations";
 
@@ -13,7 +14,8 @@ export interface ShoutoutCardProps {
   message: string;
   from: PersonRef;
   to: PersonRef[];
-  value?: string;
+  /** Company values, shown as tags. */
+  values?: string[];
   className?: string;
   /** Shown next to the recipients, e.g. time and privacy. */
   meta?: ReactNode;
@@ -27,10 +29,7 @@ function nameOf(person: PersonRef): string {
   return typeof person === "string" ? person : person.name;
 }
 
-function joinNames(names: string[]): string {
-  if (names.length <= 1) return names[0] ?? "";
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-}
+const joinNames = formatList;
 
 function PersonName({ person }: { person: PersonRef }) {
   if (typeof person === "string") {
@@ -57,7 +56,7 @@ export function ShoutoutCard({
   message,
   from,
   to,
-  value,
+  values = [],
   className,
   meta,
   actions,
@@ -103,9 +102,16 @@ export function ShoutoutCard({
               <PersonName person={from} />
             </span>
           </div>
-          {value && (
-            <span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-bold text-muted">
-              #{value}
+          {values.length > 0 && (
+            <span className="flex flex-wrap justify-end gap-1">
+              {values.map((value) => (
+                <span
+                  key={value}
+                  className="rounded-full bg-surface-muted px-3 py-1 text-xs font-bold text-muted"
+                >
+                  #{value}
+                </span>
+              ))}
             </span>
           )}
         </div>

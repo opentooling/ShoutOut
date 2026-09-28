@@ -112,13 +112,14 @@ export function ranksOnly(board: Board): Board {
   };
 }
 
-/** Company values by number of shoutouts. */
+/** Company values by number of shoutouts (a shoutout with two values counts for both). */
 export async function topValues(db: Db, range: DateRange): Promise<Board> {
   const rows = await db.rows<RankedEntry>(sql`
     SELECT v.id, v.name, COUNT(*)::int AS count,
            RANK() OVER (ORDER BY COUNT(*) DESC)::int AS rank
     FROM shoutouts s
-    JOIN company_values v ON v.id = s.value_id
+    JOIN shoutout_values sv ON sv.shoutout_id = s.id
+    JOIN company_values v ON v.id = sv.value_id
     WHERE ${rangeSql(range)}
     GROUP BY v.id, v.name
     ORDER BY count DESC, v.name ASC`);

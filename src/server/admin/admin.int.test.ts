@@ -59,7 +59,7 @@ describe("admin (postgres)", () => {
       {
         recipientIds: [recipientId],
         cardId: CARD_ID,
-        valueId: VALUE_ID,
+        valueIds: [VALUE_ID],
         message: extra.message ?? "Thanks!",
         visibility: extra.visibility ?? "PUBLIC",
       },
@@ -106,7 +106,7 @@ describe("admin (postgres)", () => {
       await expect(
         updateShoutout(db, alice.id, shoutout.id, {
           cardId: CARD_ID,
-          valueId: VALUE_ID,
+          valueIds: [VALUE_ID],
           message: "x",
           visibility: "PUBLIC",
         }),
@@ -365,7 +365,7 @@ describe("admin (postgres)", () => {
       const csv = await exportShoutoutsCsv(db, { start: new Date("2026-08-01T00:00:00Z") });
       const lines = csv.trim().split("\r\n");
       expect(lines[0]).toBe(
-        "id,created_at,sender_name,sender_email,recipient_names,recipient_emails,recipient_count,card,value,visibility,message,points_per_recipient,reactions,comments,edited",
+        "id,created_at,sender_name,sender_email,recipient_names,recipient_emails,recipient_count,card,values,visibility,message,points_per_recipient,reactions,comments,edited",
       );
       expect(lines).toHaveLength(3);
       expect(lines[1]).toContain(`,Alice,`);

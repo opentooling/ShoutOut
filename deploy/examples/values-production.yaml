@@ -21,6 +21,8 @@ config:
   quarterlyBudgetEnabled: true
   quarterlyBudget: 20
   maxRecipients: 5
+  # Company values per shoutout (1 = pick exactly one).
+  maxValues: 3
   # "admins" or "everyone": who can open the analytics dashboard.
   analyticsVisibility: admins
   # Optional points on shoutouts, from a quarterly points budget (README: Points).

@@ -62,7 +62,7 @@ A shoutout is a short, specific thank-you on a card, tied to one of our company 
 1. Choose **Send a shoutout** on the feed.
 2. Under **Who are you recognising?**, start typing a name and pick the person. Add more people if a group made it happen (up to five).
 3. Pick a **card** that fits the moment.
-4. Pick the **company value** they showed.
+4. Pick the **company values** they showed. You can usually pick more than one; the form says how many.
 5. Under **Say thanks**, write what they did and what it changed, in up to 280 characters. The preview on the right shows how it will look.
 6. Choose who can see it: **Public** (everyone) or **Private** (only you and the people you're thanking).
 7. Choose **Send shoutout**. It appears in the feed straight away.

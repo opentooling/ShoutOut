@@ -50,15 +50,45 @@ describe("CardPicker", () => {
 });
 
 describe("ValuePicker", () => {
-  it("selects values", async () => {
+  const three = [...values, { id: "v3", name: "Excellence" }];
+
+  it("works as a single choice when only one value is allowed", async () => {
     const onChange = vi.fn();
-    const { rerender } = render(<ValuePicker values={values} value="v1" onChange={onChange} />);
+    const { rerender } = render(
+      <ValuePicker values={values} value={["v1"]} onChange={onChange} max={1} />,
+    );
+    expect(screen.getByRole("group", { name: "Which value did they show?" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Integrity" })).toBeChecked();
     expect(screen.getByRole("group")).not.toHaveAttribute("aria-describedby");
     await userEvent.click(screen.getByText("Diversity"));
-    expect(onChange).toHaveBeenCalledWith("v2");
-    rerender(<ValuePicker values={values} value="" onChange={onChange} error="Pick one" />);
-    expect(screen.getByRole("group")).toHaveAttribute("aria-describedby", "valueId-error");
+    expect(onChange).toHaveBeenCalledWith(["v2"]);
+    rerender(
+      <ValuePicker values={values} value={[]} onChange={onChange} max={1} error="Pick one" />,
+    );
+    expect(screen.getByRole("group")).toHaveAttribute("aria-describedby", "valueIds-error");
+  });
+
+  it("picks several up to the limit, and unpicks", async () => {
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <ValuePicker values={three} value={["v1"]} onChange={onChange} max={2} />,
+    );
+    expect(screen.getByRole("group", { name: "Which values did they show?" })).toHaveAttribute(
+      "aria-describedby",
+      "valueIds-hint",
+    );
+    expect(screen.getByText("Pick up to 2.")).toBeInTheDocument();
+    await userEvent.click(screen.getByText("Diversity"));
+    expect(onChange).toHaveBeenLastCalledWith(["v1", "v2"]);
+    await userEvent.click(screen.getByText("Integrity"));
+    expect(onChange).toHaveBeenLastCalledWith([]);
+
+    rerender(<ValuePicker values={three} value={["v1", "v2"]} onChange={onChange} max={2} />);
+    const excellence = screen.getByRole("checkbox", { name: "Excellence" });
+    expect(excellence).toBeDisabled();
+    onChange.mockClear();
+    await userEvent.click(screen.getByText("Excellence"));
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
 

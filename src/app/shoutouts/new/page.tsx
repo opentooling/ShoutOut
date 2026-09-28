@@ -11,10 +11,11 @@ import { loadConfig, MESSAGE_MAX_LENGTH } from "@/lib/config";
 import { getDb } from "@/lib/db";
 import { getBudget, getPointsBudget } from "@/server/shoutouts/budget";
 import { listActiveCards, listActiveValues } from "@/server/shoutouts/catalog";
+import { findPerson } from "@/server/users/search";
 
 export const metadata: Metadata = { title: "Send a shoutout" };
 
-export default async function NewShoutoutPage() {
+export default async function NewShoutoutPage({ searchParams }: PageProps<"/shoutouts/new">) {
   const session = await auth();
   if (!session?.user) {
     redirect("/signin");
@@ -22,11 +23,14 @@ export default async function NewShoutoutPage() {
   const { user } = session;
   const db = getDb();
   const config = loadConfig();
-  const [budget, pointsBudget, cards, values] = await Promise.all([
+  // "Recognise X" on a profile links here with ?to=<id>: start with them picked.
+  const to = (await searchParams).to;
+  const [budget, pointsBudget, cards, values, preselected] = await Promise.all([
     config.budgetEnabled ? getBudget(db, user.id, config.quarterlyBudget) : null,
     config.points.enabled ? getPointsBudget(db, user.id, config.points.quarterlyBudget) : null,
     listActiveCards(db),
     listActiveValues(db),
+    typeof to === "string" && to !== user.id ? findPerson(db, to) : null,
   ]);
 
   return (
@@ -59,6 +63,8 @@ export default async function NewShoutoutPage() {
                 }
               }
               maxRecipients={config.maxRecipients}
+              maxValues={config.maxValues}
+              initialRecipients={preselected?.active ? [preselected] : []}
               maxMessageLength={MESSAGE_MAX_LENGTH}
             />
           </div>

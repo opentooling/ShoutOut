@@ -42,7 +42,7 @@ async function prepareShoutout(
     cardTitle: string;
     cardTagline: string;
     cardTone: CardTone;
-    valueName: string;
+    valueNames: string[];
     message: string;
     visibility: Visibility;
     points: number;
@@ -51,13 +51,14 @@ async function prepareShoutout(
     recipientCount: number;
   }>(sql`
     SELECT sender.name AS "senderName", c.title AS "cardTitle", c.tagline AS "cardTagline",
-      c.tone AS "cardTone", v.name AS "valueName", s.message, s.visibility, s.points,
+      c.tone AS "cardTone", s.message, s.visibility, s.points,
       s.moderation_status AS "moderationStatus", s.deleted_at IS NOT NULL AS deleted,
-      (SELECT COUNT(*)::int FROM shoutout_recipients r WHERE r.shoutout_id = s.id) AS "recipientCount"
+      (SELECT COUNT(*)::int FROM shoutout_recipients r WHERE r.shoutout_id = s.id) AS "recipientCount",
+      ARRAY(SELECT cv.name FROM shoutout_values sv JOIN company_values cv ON cv.id = sv.value_id
+        WHERE sv.shoutout_id = s.id ORDER BY sv.position) AS "valueNames"
     FROM shoutouts s
     JOIN users sender ON sender.id = s.sender_id
     JOIN cards c ON c.id = s.card_id
-    JOIN company_values v ON v.id = s.value_id
     WHERE s.id = ${item.shoutoutId}`);
   // Deleting a shoutout keeps the row (and so this notification); both cases mean "don't send".
   if (!shoutout || shoutout.deleted) return { skip: "shoutout was deleted" };
@@ -73,7 +74,7 @@ async function prepareShoutout(
         cardTitle: shoutout.cardTitle,
         cardTagline: shoutout.cardTagline,
         cardTone: shoutout.cardTone,
-        valueName: shoutout.valueName,
+        valueNames: shoutout.valueNames,
         message: shoutout.message,
         visibility: shoutout.visibility,
         otherRecipients: shoutout.recipientCount - 1,

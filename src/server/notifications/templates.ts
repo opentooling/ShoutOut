@@ -1,5 +1,5 @@
 import type { CardTone } from "@/components/cards/designs";
-import { formatDayCount, formatDayMonth } from "@/lib/format";
+import { formatDayCount, formatDayMonth, formatList } from "@/lib/format";
 import type { Visibility } from "../types";
 
 /**
@@ -22,7 +22,8 @@ export interface ShoutoutEmail {
   cardTitle: string;
   cardTagline: string;
   cardTone: CardTone;
-  valueName: string;
+  /** Company values, in order. */
+  valueNames: string[];
   message: string;
   visibility: Visibility;
   /** Other people thanked in the same shoutout. */
@@ -117,7 +118,8 @@ export function shoutoutReceivedEmail(email: ShoutoutEmail, appUrl: string): Ema
       : email.otherRecipients === 1
         ? " along with one other person"
         : ` along with ${email.otherRecipients} other people`;
-  const lead = `${email.senderName} recognised you${others} for ${email.valueName}.`;
+  const values = formatList(email.valueNames);
+  const lead = `${email.senderName} recognised you${others} for ${values}.`;
   const pointsNote =
     email.points > 0 ? `${email.senderName} also gave you ${plural(email.points, "point")}.` : null;
   const privateNote =
@@ -140,7 +142,7 @@ export function shoutoutReceivedEmail(email: ShoutoutEmail, appUrl: string): Ema
 
   const html = layout(
     `<p style="margin:0 0 16px">Hi ${escapeHtml(firstName(email.recipientName))},</p>
-<p style="margin:0 0 20px"><strong>${escapeHtml(email.senderName)}</strong> recognised you${escapeHtml(others)} for <strong>#${escapeHtml(email.valueName)}</strong>.</p>
+<p style="margin:0 0 20px"><strong>${escapeHtml(email.senderName)}</strong> recognised you${escapeHtml(others)} for ${formatList(email.valueNames.map((name) => `<strong>#${escapeHtml(name)}</strong>`))}.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${tone.soft};border-radius:16px">
 <tr><td style="padding:20px 22px">
 <p style="margin:0;font-size:22px;font-weight:800;color:${tone.strong}">${escapeHtml(email.cardTitle)}</p>
@@ -155,7 +157,7 @@ ${privateNote ? `<p style="margin:12px 0 0;font-size:13px;color:${MUTED}">🔒 $
   );
 
   return {
-    subject: `${email.senderName} sent you a shoutout for ${email.valueName} 🎉`,
+    subject: `${email.senderName} sent you a shoutout for ${values} 🎉`,
     text,
     html,
   };

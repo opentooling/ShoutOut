@@ -82,6 +82,8 @@ spec:
               value: {{ join "," .Values.config.points.choices | quote }}
             - name: SHOUTOUT_MAX_RECIPIENTS
               value: {{ .Values.config.maxRecipients | int | quote }}
+            - name: SHOUTOUT_MAX_VALUES
+              value: {{ .Values.config.maxValues | int | quote }}
             - name: SHOUTOUT_ANALYTICS_VISIBILITY
               value: {{ .Values.config.analyticsVisibility | quote }}
             - name: SHOUTOUT_SYNC_ON_STARTUP

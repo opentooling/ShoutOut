@@ -4,7 +4,7 @@ import { sql } from "@/lib/sql";
 import { DomainError } from "../errors";
 import { enqueueShoutoutEmails } from "../notifications/outbox";
 import { getBudget, getPointsBudget } from "./budget";
-import { SHOUTOUT_COLUMNS, type ShoutoutRecord } from "./record";
+import { saveValues, SHOUTOUT_COLUMNS, type ShoutoutRecord } from "./record";
 import type { SendShoutoutInput } from "./validation";
 
 export async function sendShoutout(
@@ -42,14 +42,15 @@ export async function sendShoutout(
     // Serialise sends per sender so concurrent requests can't overspend the budget.
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${senderId}))`);
 
-    const [card, value, recipients] = await Promise.all([
+    const valueIds = [...new Set(input.valueIds)];
+    const [card, values, recipients] = await Promise.all([
       tx.one(sql`SELECT id FROM cards WHERE id = ${input.cardId} AND active`),
-      tx.one(sql`SELECT id FROM company_values WHERE id = ${input.valueId} AND active`),
+      tx.rows(sql`SELECT id FROM company_values WHERE id = ANY(${valueIds}::text[]) AND active`),
       tx.rows(sql`SELECT id FROM users WHERE id = ANY(${recipientIds}::text[]) AND active`),
     ]);
     if (!card) throw new DomainError("CARD_NOT_FOUND", "That card isn't available", "cardId");
-    if (!value) {
-      throw new DomainError("VALUE_NOT_FOUND", "That value isn't available", "valueId");
+    if (values.length !== valueIds.length) {
+      throw new DomainError("VALUE_NOT_FOUND", "That value isn't available", "valueIds");
     }
     if (recipients.length !== recipientIds.length) {
       throw new DomainError(
@@ -84,9 +85,10 @@ export async function sendShoutout(
     }
 
     const shoutout = (await tx.one<ShoutoutRecord>(sql`
-      INSERT INTO shoutouts (sender_id, card_id, value_id, message, visibility, points, created_at, updated_at)
-      VALUES (${senderId}, ${input.cardId}, ${input.valueId}, ${input.message}, ${input.visibility}, ${points}, ${now}, ${now})
+      INSERT INTO shoutouts (sender_id, card_id, message, visibility, points, created_at, updated_at)
+      VALUES (${senderId}, ${input.cardId}, ${input.message}, ${input.visibility}, ${points}, ${now}, ${now})
       RETURNING ${SHOUTOUT_COLUMNS}`))!;
+    await saveValues(tx, shoutout.id, valueIds);
     await tx.execute(sql`
       INSERT INTO shoutout_recipients (shoutout_id, user_id)
       SELECT ${shoutout.id}, unnest(${recipientIds}::text[])`);

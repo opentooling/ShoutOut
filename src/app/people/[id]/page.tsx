@@ -73,7 +73,10 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
               )}
             </div>
             {!profile.isSelf && person.active && (
-              <Link href="/shoutouts/new" className={buttonClasses()}>
+              <Link
+                href={`/shoutouts/new?to=${encodeURIComponent(person.id)}`}
+                className={buttonClasses()}
+              >
                 Recognise {firstName}
               </Link>
             )}

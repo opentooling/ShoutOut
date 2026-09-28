@@ -118,6 +118,9 @@ Call with (dict "ctx" $ "key" "auth-secret" "value" .Values.secrets.authSecret)
 {{- if and .Values.app.extraCaCerts.configMap .Values.app.extraCaCerts.secret }}
 {{- fail "app.extraCaCerts: set configMap or secret, not both" }}
 {{- end }}
+{{- if lt (int .Values.config.maxValues) 1 }}
+{{- fail "config.maxValues must be at least 1" }}
+{{- end }}
 {{- with .Values.config.points }}
 {{- if not .choices }}
 {{- fail "config.points.choices needs at least one amount" }}

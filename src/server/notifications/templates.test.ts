@@ -16,7 +16,7 @@ const shoutout: ShoutoutEmail = {
   cardTitle: "Team Player",
   cardTagline: "A true helping hand",
   cardTone: "teal",
-  valueName: "Collaboration",
+  valueNames: ["Collaboration"],
   message: "Thanks for <b>everything</b> & more",
   visibility: "PUBLIC",
   otherRecipients: 0,
@@ -60,6 +60,19 @@ describe("shoutoutReceivedEmail", () => {
     expect(many.html).toContain("🔒");
     expect(many.text).toContain("Hi there,");
     expect(many.text).not.toContain("points");
+  });
+
+  it("names every value", () => {
+    const email = shoutoutReceivedEmail(
+      { ...shoutout, valueNames: ["Collaboration", "Integrity", "Excellence"] },
+      APP,
+    );
+    expect(email.subject).toBe(
+      "Alice Andrews sent you a shoutout for Collaboration, Integrity and Excellence 🎉",
+    );
+    expect(email.html).toContain(
+      "<strong>#Collaboration</strong>, <strong>#Integrity</strong> and <strong>#Excellence</strong>",
+    );
   });
 
   it("mentions the points the recipient got", () => {
