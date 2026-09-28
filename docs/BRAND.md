@@ -33,7 +33,9 @@ Neutrals: `background`, `surface`, `surface-muted`, `border`, `muted`, `foregrou
 
 ## Theme
 
-Light, dark or match system. The choice is stored in the `shoutout-theme`
+Light, dark or match system. Dark mode is a soft navy (background `#1a2336`,
+cards `#222d44`, text `#e9edf5`) rather than near-black, with every text pair at
+WCAG AA or better. The choice is stored in the `shoutout-theme`
 cookie and rendered on the server (`<html data-theme>`), so there is no flash.
 Tailwind's `dark:` variant follows the same rules.
 

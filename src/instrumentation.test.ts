@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureLogs } from "../test/logs";
 
 const startupSync = vi.fn().mockResolvedValue(true);
@@ -34,8 +34,13 @@ describe("register", () => {
 });
 
 describe("onRequestError", () => {
+  beforeEach(() => {
+    vi.stubEnv("NEXT_RUNTIME", "nodejs");
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   const request = { path: "/shoutouts/new", method: "POST", headers: {} };
@@ -62,6 +67,13 @@ describe("onRequestError", () => {
       digest: "123",
       error: { message: "boom", cause: { message: "db down" } },
     });
+  });
+
+  it("does nothing outside the Node.js runtime", async () => {
+    vi.stubEnv("NEXT_RUNTIME", "edge");
+    const logs = captureLogs();
+    await onRequestError(new Error("boom"), request, context);
+    expect(logs.entries).toEqual([]);
   });
 
   it("copes with thrown values that aren't errors", async () => {

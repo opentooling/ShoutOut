@@ -13,7 +13,7 @@
 }
 
 /*
- * ShoutOut design tokens — warm & friendly.
+ * ShoutOut design tokens — warm & friendly; dark mode is a soft navy.
  * Theme: light by default, dark via OS preference unless the user picked
  * a theme (html[data-theme="light" | "dark"]).
  */
@@ -65,69 +65,69 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --background: #1b1a21;
-    --surface: #25242d;
-    --surface-muted: #2f2d38;
-    --foreground: #f6f1e7;
-    --muted: #b3aec2;
-    --border: #3a3845;
+    --background: #1a2336;
+    --surface: #222d44;
+    --surface-muted: #2a3651;
+    --foreground: #e9edf5;
+    --muted: #a9b3c9;
+    --border: #36435f;
     --ring: #5fc9c3;
     --sunny: #ffcd5c;
     --sunny-strong: #ffc23d;
-    --sunny-soft: #4a3b17;
+    --sunny-soft: #473d22;
     --teal: #5fc9c3;
     --teal-strong: #8eddd8;
-    --teal-soft: #173f3d;
+    --teal-soft: #17404a;
     --coral: #ff9588;
     --coral-strong: #ffb4aa;
-    --coral-soft: #4a2622;
+    --coral-soft: #4a2a33;
     --lilac: #b3a8ff;
     --lilac-strong: #cfc7ff;
-    --lilac-soft: #2f2a52;
+    --lilac-soft: #302e5c;
     --sky: #7ec3f5;
     --sky-strong: #a9d7f8;
-    --sky-soft: #1d3548;
+    --sky-soft: #1d3a5c;
     --leaf: #7fd085;
     --leaf-strong: #a6e0aa;
-    --leaf-soft: #213d24;
-    --paper: #f6f1e7;
-    --line: #121117;
+    --leaf-soft: #1f3f35;
+    --paper: #e9edf5;
+    --line: #0f1626;
     --chart-mark: #2aa9a0;
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+    --shadow-card: 0 1px 2px rgb(5 10 25 / 0.3), 0 8px 24px -12px rgb(5 10 25 / 0.55);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --background: #1b1a21;
-  --surface: #25242d;
-  --surface-muted: #2f2d38;
-  --foreground: #f6f1e7;
-  --muted: #b3aec2;
-  --border: #3a3845;
+  --background: #1a2336;
+  --surface: #222d44;
+  --surface-muted: #2a3651;
+  --foreground: #e9edf5;
+  --muted: #a9b3c9;
+  --border: #36435f;
   --ring: #5fc9c3;
   --sunny: #ffcd5c;
   --sunny-strong: #ffc23d;
-  --sunny-soft: #4a3b17;
+  --sunny-soft: #473d22;
   --teal: #5fc9c3;
   --teal-strong: #8eddd8;
-  --teal-soft: #173f3d;
+  --teal-soft: #17404a;
   --coral: #ff9588;
   --coral-strong: #ffb4aa;
-  --coral-soft: #4a2622;
+  --coral-soft: #4a2a33;
   --lilac: #b3a8ff;
   --lilac-strong: #cfc7ff;
-  --lilac-soft: #2f2a52;
+  --lilac-soft: #302e5c;
   --sky: #7ec3f5;
   --sky-strong: #a9d7f8;
-  --sky-soft: #1d3548;
+  --sky-soft: #1d3a5c;
   --leaf: #7fd085;
   --leaf-strong: #a6e0aa;
-  --leaf-soft: #213d24;
-  --paper: #f6f1e7;
-  --line: #121117;
+  --leaf-soft: #1f3f35;
+  --paper: #e9edf5;
+  --line: #0f1626;
   --chart-mark: #2aa9a0;
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --shadow-card: 0 1px 2px rgb(5 10 25 / 0.3), 0 8px 24px -12px rgb(5 10 25 / 0.55);
 }
 
 @theme inline {

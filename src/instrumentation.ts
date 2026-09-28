@@ -13,6 +13,10 @@ export async function register() {
 
 /** Logs unhandled errors from pages, routes and server actions with full detail. */
 export const onRequestError: Instrumentation.onRequestError = async (error, request, context) => {
+  // This file is also built for the Edge runtime, where the logger's
+  // process.stdout isn't available. Nothing in ShoutOut runs there (Proxy uses
+  // Node.js since Next 16), and the check keeps the logger out of that build.
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
   const { createLogger } = await import("./lib/logger");
   const digest =
     typeof error === "object" && error !== null && "digest" in error
