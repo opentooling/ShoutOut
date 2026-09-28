@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { sql } from "@/lib/sql";
 import { useTestDb } from "../../../test/db";
 import { CARD_ID, createUser, VALUE_ID } from "../../../test/factories";
@@ -191,7 +191,21 @@ describe("points (postgres)", () => {
   });
 
   describe("who sees the amount", () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("shows no points anywhere while points mode is off", async () => {
+      vi.stubEnv("SHOUTOUT_POINTS_ENABLED", "false");
+      const { alice, bob } = await people();
+      const shoutout = await send(alice.id, [bob.id], 10);
+      expect(
+        (await getVisibleShoutout(db, alice.id, shoutout.id, now, { admin: true }))!.points,
+      ).toBeNull();
+    });
+
     it("shows points to the sender, the recipients and admins only", async () => {
+      vi.stubEnv("SHOUTOUT_POINTS_ENABLED", "true");
       const { alice, bob, carol, dave } = await people();
       const shoutout = await send(alice.id, [bob.id, carol.id], 10);
       const plain = await send(alice.id, [bob.id], 0);

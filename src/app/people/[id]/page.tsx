@@ -90,9 +90,9 @@ export default async function ProfilePage({ params, searchParams }: PageProps<"/
             ))}
             {pointsBalance && (
               <div className="col-span-2 rounded-2xl bg-sunny-soft p-4 text-center sm:col-span-1">
-                <dt className="text-sm font-bold text-on-sunny">Points received</dt>
+                <dt className="text-sm font-bold text-on-sunny dark:text-sunny">Points received</dt>
                 <dd className="font-display text-3xl font-semibold">{pointsBalance.balance}</dd>
-                <dd className="text-xs text-on-sunny">
+                <dd className="text-xs text-on-sunny dark:text-sunny">
                   {pointsBalance.receivedThisQuarter} this quarter · only you see this
                 </dd>
               </div>

@@ -1,3 +1,4 @@
+import { loadConfig } from "@/lib/config";
 import type { Db } from "@/lib/db";
 import { summarizeReactions, type ReactionSummary } from "@/lib/reactions";
 import { empty, join, sql, type Sql } from "@/lib/sql";
@@ -141,7 +142,8 @@ export interface ViewOptions {
 }
 
 function pointsFor(row: ShoutoutRow, viewerId: string, { admin }: ViewOptions): number | null {
-  if (row.points <= 0) return null;
+  // With points mode off, nothing about points shows (the amounts are kept).
+  if (row.points <= 0 || !loadConfig().points.enabled) return null;
   const involved =
     row.senderId === viewerId || row.recipients.some((recipient) => recipient.id === viewerId);
   return involved || admin ? row.points : null;
