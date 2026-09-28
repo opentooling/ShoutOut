@@ -8,7 +8,7 @@ export function SiteHeader({ user }: { user?: HeaderUser | null }) {
   if (user) return <AppHeader user={user} />;
   return (
     <header className="border-b-2 border-border">
-      <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+      <div className="page-width flex items-center justify-between gap-4 px-4 py-4 sm:px-6">
         <Link href="/" aria-label="ShoutOut home">
           <Logo className="h-9" />
         </Link>

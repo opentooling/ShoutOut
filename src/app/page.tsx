@@ -54,7 +54,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   return (
     <>
       <AppHeader user={user} />
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
+      <main className="page-width flex flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
         <Notice code={param(params.notice)} />
         {/* Wide screens: feed on the left, a sticky sidebar on the right. */}
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8">

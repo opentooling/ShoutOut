@@ -95,7 +95,7 @@ export default async function GuidePage() {
   return (
     <>
       <SiteHeader user={session?.user} />
-      <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+      <div className="page-width flex-1 px-4 py-8 sm:px-6">
         <div className="mb-8">
           <h1 className="font-display text-4xl font-semibold">{GUIDE_TITLE}</h1>
           <p className="mt-3 max-w-2xl text-lg text-muted">{GUIDE_INTRO}</p>

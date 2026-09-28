@@ -31,7 +31,7 @@ export function AdminShell({
   return (
     <>
       <AppHeader user={user} />
-      <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-8 sm:px-6">
+      <main className="page-width flex-1 space-y-6 px-4 py-8 sm:px-6">
         <div className="space-y-3">
           <h1 className="font-display text-3xl font-semibold">Admin</h1>
           <SegmentedLinks

@@ -23,7 +23,7 @@ export default async function PeoplePage({ searchParams }: PageProps<"/people">)
   return (
     <>
       <AppHeader user={user} />
-      <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 px-4 py-8 sm:px-6">
+      <main className="page-width flex-1 space-y-6 px-4 py-8 sm:px-6">
         <h1 className="font-display text-3xl font-semibold">People</h1>
         <PeopleSearch initialQuery={query} />
         <div aria-live="polite" className="sr-only">
@@ -32,7 +32,7 @@ export default async function PeoplePage({ searchParams }: PageProps<"/people">)
         {people.length === 0 ? (
           <p className="text-muted">Nobody matches &ldquo;{query}&rdquo;.</p>
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {people.map((person) => (
               <li key={person.id}>
                 <Link

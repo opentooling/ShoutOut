@@ -36,7 +36,7 @@ export default async function NewShoutoutPage({ searchParams }: PageProps<"/shou
   return (
     <>
       <AppHeader user={user} />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">
+      <main className="page-width flex-1 px-4 py-8 sm:px-6">
         <h1 className="font-display text-3xl font-semibold sm:text-4xl">Send a shoutout</h1>
         {budget?.remaining === 0 ? (
           <div className="mt-6 space-y-4 rounded-[var(--radius-card)] border-2 border-border bg-surface p-8">

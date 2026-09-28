@@ -45,7 +45,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps<"/lead
   return (
     <>
       <AppHeader user={user} />
-      <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-8 sm:px-6">
+      <main className="page-width flex-1 space-y-6 px-4 py-8 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="font-display text-3xl font-semibold">Leaderboard</h1>
@@ -62,7 +62,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps<"/lead
           />
         </div>
         <div
-          className={cn("grid gap-6", points ? "md:grid-cols-2 xl:grid-cols-4" : "lg:grid-cols-3")}
+          className={cn("grid gap-6", points ? "md:grid-cols-2 2xl:grid-cols-4" : "lg:grid-cols-3")}
         >
           <LeaderboardBoard
             title="Most recognised"
