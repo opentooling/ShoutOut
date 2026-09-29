@@ -18,3 +18,25 @@ extraObjects:
       name: {{ include "shoutout.fullname" $ }}-extra
     data:
       budget: "{{ .Values.config.quarterlyBudget }}"
+  # Conditional items: a flag that is on, one that is off, and a plain boolean.
+  - when: "{{ .Values.features.flagOn }}"
+    object:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: '{{ include "shoutout.fullname" $ }}-when-on'
+  - when: "{{ .Values.features.flagOff }}"
+    object:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: '{{ include "shoutout.fullname" $ }}-when-off'
+  - when: false
+    object: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: {{ include "shoutout.fullname" $ }}-when-false
+features:
+  flagOn: true
+  flagOff: false

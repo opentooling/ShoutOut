@@ -292,6 +292,54 @@ extraObjects:
       tls: { termination: edge }
 ```
 
+#### Different objects per cluster
+
+Wrap an item as `{when, object}` to render it only when a flag is on. `when` is
+`true`, `false` or a template string; it counts as off when it renders empty,
+`false`, `0`, `no`, `off` or `null`. The same rules apply in the LogGate chart.
+
+Because Helm replaces lists across values files but merges maps, keep every
+object in one shared file, each behind a flag, and let each cluster's file set
+only its flags. [deploy/examples/multi-cluster/](deploy/examples/multi-cluster/)
+has a working example:
+
+```yaml
+# common.yaml: every object any cluster may need
+features:
+  route: false
+  networkPolicy: false
+extraObjects:
+  - when: "{{ .Values.features.route }}"
+    object:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      # ...
+  - when: "{{ .Values.features.networkPolicy }}"
+    object:
+      apiVersion: networking.k8s.io/v1
+      kind: NetworkPolicy
+      # ...
+```
+
+```yaml
+# cluster-openshift-prod.yaml
+features:
+  route: true
+```
+
+```bash
+helm upgrade --install shoutout oci://ghcr.io/opentooling/charts/shoutout -n shoutout \
+  -f values-production.yaml -f multi-cluster/common.yaml -f multi-cluster/cluster-openshift-prod.yaml
+```
+
+The shared file must come before the cluster's. In the example, OpenShift
+production gets a Route, an ExternalSecret and a PodDisruptionBudget, and plain
+Kubernetes staging gets a NetworkPolicy. Settings the objects need per cluster,
+such as the secret store or the ingress namespace, go in a map of your own too
+(`site:` in the example). `features` and `site` are just names; the chart
+doesn't define them. Avoid `on`, `off`, `yes` and `no` as flag names, because
+YAML reads them as booleans.
+
 ## Container image
 
 CI publishes a multi-arch (amd64 + arm64) image to

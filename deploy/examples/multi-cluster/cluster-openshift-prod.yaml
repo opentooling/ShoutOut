@@ -1,0 +1,23 @@
+# Production on OpenShift: a Route instead of an Ingress, and secrets from
+# Vault through the External Secrets Operator. Used after common.yaml.
+appUrl: https://shoutout.apps.ocp-prod.example.com
+
+openshift:
+  enabled: true
+
+app:
+  replicaCount: 2
+  ingress:
+    enabled: false
+
+secrets:
+  existingSecret: shoutout-secrets
+
+features:
+  route: true
+  externalSecret: true
+  # podDisruptionBudget stays on (common.yaml)
+
+site:
+  secretStore: vault-prod
+  secretPath: apps/shoutout/prod

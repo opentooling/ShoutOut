@@ -1,0 +1,91 @@
+# Shared by every cluster: all the extra objects any cluster might need, each
+# behind a flag under `features`. A cluster's own values file (cluster-*.yaml)
+# turns the flags on or off; maps merge across values files, so it only lists
+# what differs. Pass this file before the cluster's:
+#
+#   helm upgrade --install shoutout oci://ghcr.io/opentooling/charts/shoutout -n shoutout \
+#     -f values-production.yaml -f multi-cluster/common.yaml -f multi-cluster/cluster-openshift-prod.yaml
+#
+# The flag names are ours (the chart doesn't define `features` or `site`); any
+# name works except on, off, yes and no, which YAML reads as booleans.
+
+# Off unless a cluster turns them on, except the disruption budget.
+features:
+  route: false
+  externalSecret: false
+  networkPolicy: false
+  podDisruptionBudget: true
+
+# Per-cluster settings the objects below read.
+site:
+  # External Secrets Operator: the (Cluster)SecretStore that holds ShoutOut's secrets.
+  secretStore: ""
+  secretPath: shoutout
+  # Namespace the ingress controller runs in, allowed through the network policy.
+  ingressNamespace: ingress-nginx
+
+extraObjects:
+  # OpenShift: a Route in place of the Ingress (set app.ingress.enabled: false
+  # too). Its host comes from appUrl.
+  - when: "{{ .Values.features.route }}"
+    object:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: '{{ include "shoutout.fullname" $ }}-app'
+      spec:
+        host: '{{ .Values.appUrl | trimPrefix "https://" | trimPrefix "http://" }}'
+        to: { kind: Service, name: '{{ include "shoutout.fullname" $ }}-app' }
+        port: { targetPort: http }
+        tls: { termination: edge, insecureEdgeTerminationPolicy: Redirect }
+
+  # External Secrets Operator: builds the Secret the chart reads
+  # (secrets.existingSecret) from the cluster's secret store.
+  - when: "{{ .Values.features.externalSecret }}"
+    object:
+      apiVersion: external-secrets.io/v1
+      kind: ExternalSecret
+      metadata:
+        name: "{{ .Values.secrets.existingSecret }}"
+      spec:
+        refreshInterval: 1h
+        secretStoreRef: { kind: ClusterSecretStore, name: "{{ .Values.site.secretStore }}" }
+        target: { name: "{{ .Values.secrets.existingSecret }}" }
+        dataFrom:
+          - extract: { key: "{{ .Values.site.secretPath }}" }
+
+  # Only the ingress controller (and pods in this namespace) may reach the app.
+  - when: "{{ .Values.features.networkPolicy }}"
+    object:
+      apiVersion: networking.k8s.io/v1
+      kind: NetworkPolicy
+      metadata:
+        name: '{{ include "shoutout.fullname" $ }}-app'
+      spec:
+        podSelector:
+          matchLabels:
+            app.kubernetes.io/instance: "{{ .Release.Name }}"
+            app.kubernetes.io/component: app
+        policyTypes: [Ingress]
+        ingress:
+          - from:
+              - namespaceSelector:
+                  matchLabels:
+                    kubernetes.io/metadata.name: "{{ .Values.site.ingressNamespace }}"
+              - podSelector: {}
+            ports:
+              - port: 3000
+
+  # Keeps at least one app pod up during node drains (needs app.replicaCount >= 2).
+  - when: "{{ .Values.features.podDisruptionBudget }}"
+    object:
+      apiVersion: policy/v1
+      kind: PodDisruptionBudget
+      metadata:
+        name: '{{ include "shoutout.fullname" $ }}-app'
+      spec:
+        minAvailable: 1
+        selector:
+          matchLabels:
+            app.kubernetes.io/instance: "{{ .Release.Name }}"
+            app.kubernetes.io/component: app

@@ -59,6 +59,22 @@ jobs:
           fi
           grep -q 'kind: Route' <<< "$rendered"
           grep -q 'name: ci-shoutout-extra' <<< "$rendered"
+          # Conditional extraObjects: rendered when the flag is on, left out otherwise.
+          grep -q "name: 'ci-shoutout-when-on'" <<< "$rendered"
+          if grep -Eq 'ci-shoutout-when-(off|false)' <<< "$rendered"; then
+            echo "::error::extraObjects with a false 'when' must not render"; exit 1
+          fi
+      - name: Multi-cluster example renders each cluster's objects
+        run: |
+          render() {
+            helm template shoutout deploy/helm/shoutout -f deploy/examples/values-production.yaml \
+              -f deploy/examples/multi-cluster/common.yaml -f "deploy/examples/multi-cluster/cluster-$1.yaml" \
+              --show-only templates/extra-objects.yaml | grep '^kind:' | sort | tr '\n' ' '
+          }
+          prod="$(render openshift-prod)"; staging="$(render k8s-staging)"
+          echo "prod: $prod"; echo "staging: $staging"
+          [ "$prod" = "kind: ExternalSecret kind: PodDisruptionBudget kind: Route " ]
+          [ "$staging" = "kind: NetworkPolicy " ]
       - name: Image pull secrets reach every pod
         run: |
           rendered="$(helm template ci deploy/helm/shoutout \

@@ -1,0 +1,16 @@
+# Staging on plain Kubernetes: the chart's own Ingress, a network policy, and
+# one replica (so no disruption budget). Used after common.yaml.
+appUrl: https://shoutout.staging.example.com
+
+app:
+  replicaCount: 1
+  ingress:
+    className: nginx
+    host: shoutout.staging.example.com
+
+features:
+  networkPolicy: true
+  podDisruptionBudget: false
+
+site:
+  ingressNamespace: ingress-nginx
