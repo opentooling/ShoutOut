@@ -229,6 +229,40 @@ Chart versions are `<major.minor from Chart.yaml>.<CI run number>`, so a plain
 install gets the newest. Each chart's `appVersion` (the default image tag) is
 the `sha-<commit>` image built from the same commit. Pin with `--version`.
 
+### Private registries and pull secrets
+
+When images come from a registry that needs a sign-in (a private GHCR
+package, or a company mirror of Docker Hub, Quay and GHCR), give the pods a
+pull secret. `imagePullSecrets` applies to every pod the chart runs: the app
+(and its migration step), Postgres, Keycloak, the people sync and the Helm
+test.
+
+```bash
+kubectl -n shoutout create secret docker-registry regcred \
+  --docker-server=artifactory.example.com --docker-username=svc-shoutout --docker-password="$TOKEN"
+```
+
+```yaml
+imagePullSecrets:
+  - regcred
+```
+
+Or let the chart create the secret (the password then lives in your values):
+
+```yaml
+imageCredentials:
+  create: true
+  registry: ghcr.io
+  username: svc-shoutout
+  password: <token with read:packages>
+```
+
+Each component can add its own on top: `app.imagePullSecrets`,
+`postgres.imagePullSecrets`, `keycloak.imagePullSecrets` and
+`userSync.imagePullSecrets` (also used by the Helm test pod). To pull from a
+mirror, point each `*.image.repository` at it, e.g.
+`postgres.image.repository: artifactory.example.com/docker/library/postgres`.
+
 ### OpenShift
 
 Set `openshift.enabled: true` to run under the `restricted-v2` SCC. Pods then

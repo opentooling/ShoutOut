@@ -59,6 +59,18 @@ jobs:
           fi
           grep -q 'kind: Route' <<< "$rendered"
           grep -q 'name: ci-shoutout-extra' <<< "$rendered"
+      - name: Image pull secrets reach every pod
+        run: |
+          rendered="$(helm template ci deploy/helm/shoutout \
+            --set 'imagePullSecrets[0]=regcred' \
+            --set imageCredentials.create=true --set imageCredentials.registry=ghcr.io \
+            --set imageCredentials.username=ci --set imageCredentials.password=ci)"
+          pods=$(grep -cE '^kind: (Deployment|StatefulSet|CronJob|Pod)$' <<< "$rendered")
+          # Each pod lists both the global secret and the one the chart created.
+          with_regcred=$(grep -c -- '- name: regcred' <<< "$rendered")
+          with_created=$(grep -c -- '- name: ci-shoutout-registry' <<< "$rendered")
+          echo "pods=$pods regcred=$with_regcred created=$with_created"
+          [ "$pods" -gt 0 ] && [ "$with_regcred" -eq "$pods" ] && [ "$with_created" -eq "$pods" ]
 
   dependency-audit:
     name: Dependency vulnerabilities (npm audit)

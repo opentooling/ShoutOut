@@ -20,11 +20,13 @@ spec:
             {{- include "shoutout.selectorLabels" (dict "ctx" $ "component" "user-sync") | nindent 12 }}
         spec:
           restartPolicy: Never
+          {{- include "shoutout.imagePullSecrets" (dict "ctx" $ "extra" .Values.userSync.imagePullSecrets) | nindent 10 }}
           securityContext:
             {{- include "shoutout.podSecurityContext" (dict "ctx" $ "runAsUser" 65534) | nindent 12 }}
           containers:
             - name: sync
               image: "{{ .Values.userSync.image.repository }}:{{ .Values.userSync.image.tag }}"
+              imagePullPolicy: {{ .Values.userSync.image.pullPolicy }}
               command:
                 - sh
                 - -c

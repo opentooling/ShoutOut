@@ -20,6 +20,7 @@ spec:
       annotations:
         checksum/realm: {{ include "shoutout.contentChecksum" (dict "ctx" $ "template" "/keycloak/realm-configmap.yaml") }}
     spec:
+      {{- include "shoutout.imagePullSecrets" (dict "ctx" $ "extra" .Values.keycloak.imagePullSecrets) | nindent 6 }}
       securityContext:
         {{- include "shoutout.podSecurityContext" (dict "ctx" $) | nindent 8 }}
       containers:

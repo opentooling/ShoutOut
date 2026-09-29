@@ -197,3 +197,36 @@ Call with (dict "ctx" $ "template" "/postgres/initdb-configmap.yaml")
 {{- $manifest := include (print .ctx.Template.BasePath .template) .ctx | fromYaml | default dict -}}
 {{- pick $manifest "data" "stringData" "binaryData" | toYaml | sha256sum -}}
 {{- end }}
+
+{{/*
+Name of the registry secret the chart creates from imageCredentials.
+*/}}
+{{- define "shoutout.imageCredentialsName" -}}
+{{- default (printf "%s-registry" (include "shoutout.fullname" .)) .Values.imageCredentials.name -}}
+{{- end }}
+
+{{/*
+imagePullSecrets for a pod: the chart's registry secret (imageCredentials), the
+global imagePullSecrets and the component's own, without repeats. Entries can
+be names or { name: ... }. Renders nothing when there are none.
+Call with (dict "ctx" $ "extra" .Values.<component>.imagePullSecrets).
+*/}}
+{{- define "shoutout.imagePullSecrets" -}}
+{{- $names := list -}}
+{{- if .ctx.Values.imageCredentials.create -}}
+{{- $names = append $names (include "shoutout.imageCredentialsName" .ctx) -}}
+{{- end -}}
+{{- range concat (.ctx.Values.imagePullSecrets | default list) (.extra | default list) -}}
+{{- if kindIs "string" . -}}
+{{- $names = append $names . -}}
+{{- else -}}
+{{- $names = append $names .name -}}
+{{- end -}}
+{{- end -}}
+{{- with $names | uniq -}}
+imagePullSecrets:
+{{- range . }}
+  - name: {{ . }}
+{{- end }}
+{{- end -}}
+{{- end }}

@@ -9,11 +9,14 @@ metadata:
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
   restartPolicy: Never
+  {{- include "shoutout.imagePullSecrets" (dict "ctx" $ "extra" .Values.userSync.imagePullSecrets) | nindent 2 }}
   securityContext:
     {{- include "shoutout.podSecurityContext" (dict "ctx" $ "runAsUser" 65534) | nindent 4 }}
   containers:
     - name: ready
-      image: docker.io/library/busybox:1.37
+      # The same small image as the user sync, so a registry mirror covers both.
+      image: "{{ .Values.userSync.image.repository }}:{{ .Values.userSync.image.tag }}"
+      imagePullPolicy: {{ .Values.userSync.image.pullPolicy }}
       command: ["wget", "-qO-", "http://{{ include "shoutout.fullname" . }}-app:{{ .Values.app.service.port }}/api/ready"]
       securityContext:
         {{- include "shoutout.containerSecurityContext" (dict "readOnlyRootFilesystem" true) | nindent 8 }}

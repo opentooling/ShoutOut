@@ -55,6 +55,11 @@ auth:
 logging:
   level: info
 
+# Pull secrets for every pod, when the images (or a company mirror of them) need
+# a sign-in. Create one with: kubectl -n shoutout create secret docker-registry regcred ...
+# imagePullSecrets:
+#   - regcred
+
 app:
   replicaCount: 2
   image:

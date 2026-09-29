@@ -35,6 +35,23 @@ extraObjects: []
 #      headers:
 #        frameDeny: true
 
+# -- Pull secrets for every pod the chart runs, e.g. for a private registry or a
+# mirror that needs a sign-in. Names of existing kubernetes.io/dockerconfigjson
+# secrets in the release namespace ("regcred" or { name: regcred }). Each
+# component can add its own (app/postgres/keycloak/userSync.imagePullSecrets).
+imagePullSecrets: []
+
+# Or let the chart create the pull secret; it is then used by every pod.
+imageCredentials:
+  create: false
+  # -- Secret name; defaults to <release>-shoutout-registry.
+  name: ""
+  # -- Registry host, e.g. ghcr.io or artifactory.example.com.
+  registry: ""
+  username: ""
+  # -- A token or password with read access to the images.
+  password: ""
+
 # Shared secrets. Leave empty to auto-generate on install; generated values are
 # kept on upgrade. Or point `existingSecret` at a secret with the same keys:
 #   auth-secret, keycloak-client-secret, postgres-password, keycloak-admin-password, sync-token
@@ -117,9 +134,13 @@ userSync:
   # -- Optional regex pattern to filter synced users by username (SHOUTOUT_SYNC_USERNAME_PATTERN).
   # E.g. "^(?!cbk\\.)[a-zA-Z0-9._-]+\\.[a-zA-Z0-9._-]+$"
   usernamePattern: ""
+  # -- Also used by the Helm test pod.
   image:
     repository: docker.io/library/busybox
     tag: "1.37"
+    pullPolicy: IfNotPresent
+  # -- Pull secrets for the sync and Helm test pods, on top of the global imagePullSecrets.
+  imagePullSecrets: []
 
 app:
   replicaCount: 1
@@ -127,6 +148,7 @@ app:
     repository: ghcr.io/opentooling/shoutout
     tag: ""            # defaults to .Chart.AppVersion
     pullPolicy: IfNotPresent
+  # -- Pull secrets for the app pods, on top of the global imagePullSecrets.
   imagePullSecrets: []
   podAnnotations: {}
   extraEnv: []
@@ -185,6 +207,8 @@ postgres:
     repository: docker.io/library/postgres
     tag: 17-alpine
     pullPolicy: IfNotPresent
+  # -- Pull secrets for Postgres, on top of the global imagePullSecrets.
+  imagePullSecrets: []
   username: shoutout
   persistence:
     size: 2Gi
@@ -199,6 +223,8 @@ keycloak:
     repository: quay.io/keycloak/keycloak
     tag: "26.7.4"
     pullPolicy: IfNotPresent
+  # -- Pull secrets for Keycloak, on top of the global imagePullSecrets.
+  imagePullSecrets: []
   # -- Public URL of Keycloak (browser-facing and used as the token issuer).
   url: http://auth.localtest.me
   adminUsername: admin

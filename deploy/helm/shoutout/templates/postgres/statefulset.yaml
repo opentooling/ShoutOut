@@ -18,6 +18,7 @@ spec:
       annotations:
         checksum/initdb: {{ include "shoutout.contentChecksum" (dict "ctx" $ "template" "/postgres/initdb-configmap.yaml") }}
     spec:
+      {{- include "shoutout.imagePullSecrets" (dict "ctx" $ "extra" .Values.postgres.imagePullSecrets) | nindent 6 }}
       securityContext:
         {{- include "shoutout.podSecurityContext" (dict "ctx" $ "runAsUser" 70 "runAsGroup" 70 "fsGroup" 70) | nindent 8 }}
       containers:
