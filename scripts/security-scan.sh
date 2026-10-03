@@ -7,8 +7,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 log() { printf '\033[1;36m==> %s\033[0m\n' "$*"; }
 
-log "npm audit (high and critical)"
-(cd "$ROOT" && npm audit --audit-level=high)
+log "npm audit (high and critical, minus .npm-audit-ignore)"
+node "$ROOT/scripts/npm-audit.mjs"
 
 if [[ $# -gt 0 ]]; then
   if ! command -v trivy >/dev/null; then

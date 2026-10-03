@@ -62,7 +62,10 @@ describe("startEmailNotifications", () => {
   });
 
   it("logs the settings and the relay check, then sends on a timer", async () => {
-    vi.useFakeTimers();
+    // Inside the budget-reminder window (the last 14 days of a quarter), where
+    // housekeeping both queues reminders and cleans up: two queries per run.
+    // Outside it there is nothing to queue, so this must not use today's date.
+    vi.useFakeTimers({ now: new Date("2026-09-25T12:00:00Z") });
     const { log, find } = memoryLog();
     const db = emptyDb();
     const mailer: Mailer = { send: vi.fn(), verify: vi.fn().mockResolvedValue(undefined) };

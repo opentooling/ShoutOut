@@ -98,7 +98,7 @@ jobs:
         with:
           node-version: 22
       - name: Fail on high or critical advisories
-        run: npm audit --audit-level=high
+        run: node scripts/npm-audit.mjs
 
   image:
     name: Build and scan container image (${{ matrix.arch }})

@@ -52,7 +52,7 @@ Never edit a migration that has already been applied.
 ### Security checks
 
 ```bash
-npm run audit:deps                                   # npm audit, fails on high/critical
+npm run audit:deps                                   # npm audit, fails on high/critical not in .npm-audit-ignore
 scripts/security-scan.sh shoutout:tag   # + Trivy image scan
 ```
 
@@ -60,7 +60,9 @@ scripts/security-scan.sh shoutout:tag   # + Trivy image scan
 CI runs `npm audit` and a Trivy scan of both images on every PR and weekly, and
 Dependabot opens update PRs for npm packages, base images and GitHub Actions.
 Images drop npm/yarn from the runtime and apply Alpine security updates. Accepted
-findings go in `.trivyignore` with a reason and review date.
+findings go in `.trivyignore` (images) or `.npm-audit-ignore` (npm) with a reason
+and review date; the npm check also fails on accepted entries that are no longer
+reported, so they get removed once fixed.
 
 ### Deploy to local Kubernetes (k3d)
 

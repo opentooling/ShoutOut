@@ -1,0 +1,6 @@
+# npm advisories accepted after review (checked by scripts/npm-audit.mjs).
+# Each entry needs a reason and a review date. Remove it once a fix is out:
+# the check fails on entries that are no longer reported.
+# GHSA-xxxx-xxxx-xxxx  # reason, reviewed YYYY-MM-DD
+
+GHSA-vfj7-8cjw-p6xm  # braces DoS via deeply nested patterns; dev-only (eslint-config-next -> fast-glob -> micromatch), not in the image, no fixed version yet; reviewed 2026-10-03
