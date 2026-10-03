@@ -31,6 +31,19 @@ extraObjects:
       kind: ConfigMap
       metadata:
         name: '{{ include "shoutout.fullname" $ }}-when-off'
+  # A flag that isn't defined at all renders empty, so it counts as off.
+  - when: "{{ .Values.features.flagMissing }}"
+    object:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: '{{ include "shoutout.fullname" $ }}-when-missing'
+  # No condition: always rendered.
+  - object:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: '{{ include "shoutout.fullname" $ }}-no-when'
   - when: false
     object: |
       apiVersion: v1

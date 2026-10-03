@@ -296,7 +296,9 @@ extraObjects:
 
 Wrap an item as `{when, object}` to render it only when a flag is on. `when` is
 `true`, `false` or a template string; it counts as off when it renders empty,
-`false`, `0`, `no`, `off` or `null`. The same rules apply in the LogGate chart.
+`false`, `0`, `no`, `off` or `null`, which includes a flag that isn't set.
+`when` is optional: `{object}` alone always renders, so every item can be
+wrapped the same way. The same rules apply in the LogGate chart.
 
 Because Helm replaces lists across values files but merges maps, keep every
 object in one shared file, each behind a flag, and let each cluster's file set
